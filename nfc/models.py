@@ -7,7 +7,6 @@ NFC tag UIDs and InvenTree parts, tracking which user linked the tag and when.
 
 from django.db import models
 
-
 class NFCTagLink(models.Model):
     """Maps an NFC tag UID to an InvenTree Part"""
 
