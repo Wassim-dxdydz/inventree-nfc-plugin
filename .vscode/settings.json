@@ -1,0 +1,3 @@
+{
+  "python.analysis.extraPaths": ["/home/inventree/src/backend/InvenTree"]
+}
