@@ -1,5 +1,9 @@
 """NFC-based stock management plugin"""
 
+import threading
+import logging
+import time
+
 from plugin import InvenTreePlugin
 from plugin.mixins import (
     AppMixin,
@@ -11,6 +15,7 @@ from plugin.mixins import (
 
 from . import PLUGIN_VERSION
 
+log = logging.getLogger(__name__)
 
 class NFC(
     AppMixin, LocateMixin, SettingsMixin, UrlsMixin, UserInterfaceMixin, InvenTreePlugin
@@ -52,6 +57,52 @@ class NFC(
             "default" : True,
         },
     }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._start_reader_thread()
+
+    # NFC Reader Thread
+    def _start_reader_thread(self):
+        """
+        Start the background NFC polling thread if not already running.
+        """
+        if self._reader_thread and self._reader_thread.is_alive():
+            return
+        self._stop_event.clear()
+        self._reader_thread =  threading.Thread(
+            target=self._reader_loop,
+            daemon=True,
+            name="nfc-reader-thread",
+        )
+        self._reader_thread.start()
+        log.info("NFC reader background thread started")
+
+    def _reader_loop(self):
+        """
+        Continuously poll the NFC reader and store the last scanned UID.
+        """
+        try:
+            from .nfc_reader import read_nfc_tag
+        except ImportError:
+            log.warning("pyscard not installed - NFC reader thread disabled")
+            return
+
+        last_uid = None
+        while not self._stop_event.is_set():
+            try:
+                uid = read_nfc_tag
+                if uid and uid != "WAITING" and uid != last_uid:
+                    with NFC._lock:
+                        NFC._last_scanned_uid = uid
+                    last_uid = uid
+                    log.info(f"NFC scan detected : {uid}")
+                if not uid or uid == "WAITING":
+                    last_uid =  None
+                time.sleep(1)
+            except Exception as e:
+                log.error(f"NFC reader loop error : {e}")
+                time.sleep(2)
 
     # Perform custom locate operations (from LocateMixin)
     # Ref: https://docs.inventree.org/en/latest/plugins/mixins/locate/
