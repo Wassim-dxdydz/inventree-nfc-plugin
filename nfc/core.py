@@ -183,13 +183,16 @@ class NFC(
         return items
 
     def get_ui_spotlight_actions(self, request, context, **kwargs):
-        """Return a list of custom spotlight actions to be made available."""
+        """
+        Return spotlight search actions
+        """
+
         return [
             {
-                "key": "sample-spotlight-action",
-                "title": "Hello Action",
-                "description": "Hello from NFC",
-                "icon": "ti:heart-handshake:outline",
+                "key": "nfc-scan-action",
+                "title": "Start NFC Scan",
+                "description": "Scan an NFC tag to find or update a part",
+                "icon": "ti:wifi:outline",
                 "source": self.plugin_static_file("Spotlight.js:NFCSpotlightAction"),
             }
         ]
