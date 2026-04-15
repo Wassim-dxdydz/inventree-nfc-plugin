@@ -62,4 +62,49 @@ class NFCTagView(APIView):
             return Response({
                 "found": False,
                 "uid": uid.upper(),
-            })
+            })        
+
+class NFCLinkView(APIView):
+    """
+    POST /link/ : link an NFC Tag UID to an InvenTree Part.
+    Body: { "uid": "AABBCCDD", "part_id": 42 }
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        from .models import NFCTagLink
+        from part.models import Part
+
+        uid = request.data.get("uid", "").strip().upper()
+        part_id = request.data.get("part_id")
+
+        if not uid or not part_id:
+            return Response(
+                {"error": "Both 'uid' and 'part_id' are required"},
+                status=400
+                )
+
+        try:
+            part = Part.objects.get(pk = part_id)
+        except Part.DoesNotExist:
+            return Response(
+                {"error": f"Part with id {part_id} not found"},
+                status=400
+                )
+
+        link, created =  NFCTagLink.objects.update_or_create(
+            uid = uid,
+            defaults={
+                "part": part,
+                "linked_by":request.user,
+            },
+        )
+
+        return Response({
+            "success": True,
+            "created": created,
+            "uid": uid,
+            "part_id":part.pk,
+            "part_name": part.name,
+        })

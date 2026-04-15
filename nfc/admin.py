@@ -4,7 +4,6 @@ from django.contrib import admin
 
 from .models import NFCTagLink
 
-
 @admin.register(NFCTagLink)
 class NFCTagLinkAdmin(admin.ModelAdmin):
     """Admin interface for the NFCTagLink"""
