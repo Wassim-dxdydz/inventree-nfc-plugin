@@ -32,3 +32,34 @@ class NFCScanStatusView(APIView):
             "found": False,
             "uid": None
         })
+
+class NFCTagView(APIView):
+    """
+    GET /tag/<uid>/ : check if an NFC tag is linked to a Part.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, uid, *args, **kwargs):
+        """
+        GET part linked to the NFC tag
+        """
+
+        from .models import NFCTagLink
+        try:
+            link = NFCTagLink.objects.get(uid=uid.upper())
+            part = link.part
+            return Response({
+                "uid": True,
+                "part_id": uid.upper(),
+                "part_id": part.pk,
+                "part_name": part.name,
+                "part_description": part.description,
+                "total_stock": float(part.total_stock),
+                "part_url": f"/part/{part.pk}/",
+            })
+        except NFCTagLink.DoesNotExist:
+            return Response({
+                "found": False,
+                "uid": uid.upper(),
+            })
