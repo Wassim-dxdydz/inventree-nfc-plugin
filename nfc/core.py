@@ -39,13 +39,18 @@ class NFC(
     # Plugin settings (from SettingsMixin)
     # Ref: https://docs.inventree.org/en/latest/plugins/mixins/settings/
     SETTINGS = {
-        # Define your plugin settings here...
-        "CUSTOM_VALUE": {
-            "name": "Custom Value",
-            "description": "A custom value",
-            "validator": int,
-            "default": 42,
-        }
+        "POLL_INTERVAL": {
+            "name" : "Poll interval (seconds)",
+            "description" : "How often to poll the NFC reader fo a new tag.",
+            "validator" : int,
+            "default" : 1,
+        },
+        "AUTO_REDIRECT" : {
+            "name" : "auto-redirect on scan",
+            "description" : "Automatically navigate to the Part page when a known tag is scanned",
+            "validator" : bool,
+            "default" : True,
+        },
     }
 
     # Perform custom locate operations (from LocateMixin)
