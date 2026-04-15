@@ -108,9 +108,11 @@ class NFC(
     # Ref: https://docs.inventree.org/en/latest/plugins/mixins/locate/
     def locate_stock_item(self, item_id: int):
         """Attempt to locate a particular StockItem."""
+        log.debug(f"locate_stock_item called for item {item_id}")
 
     def locate_stock_location(self, location_id: int):
         """Attempt to locate a particular StockLocation."""
+        log.debug(f"locate_stock_location called for location {location_id}")
 
     # Custom URL endpoints (from UrlsMixin)
     # Ref: https://docs.inventree.org/en/latest/plugins/mixins/urls/
