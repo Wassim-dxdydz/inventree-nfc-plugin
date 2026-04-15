@@ -81,7 +81,7 @@ class NFCLinkView(APIView):
 
         if not uid or not part_id:
             return Response(
-                {"error": "Both 'uid' and 'part_id' are required"},
+                {"error": "Both 'uid' and 'part_id' are required. "},
                 status=400
                 )
 
@@ -89,8 +89,8 @@ class NFCLinkView(APIView):
             part = Part.objects.get(pk = part_id)
         except Part.DoesNotExist:
             return Response(
-                {"error": f"Part with id {part_id} not found"},
-                status=400
+                {"error": f"Part with id {part_id} not found."},
+                status=404
                 )
 
         link, created =  NFCTagLink.objects.update_or_create(
@@ -108,3 +108,33 @@ class NFCLinkView(APIView):
             "part_id":part.pk,
             "part_name": part.name,
         })
+
+class NFCStockView(APIView):
+    """
+    POST /stock/ : add or remove stock for a linked NFC tag.
+    Body: { "uid": "AABBCCDD", "quantity": 5, "action": "add" | "remove", "notes": "optional" }
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        from .models import NFCTagLink
+        from stock.models import StockItem
+
+        uid = request.data.get("uid", "").strip().upper()
+        action = request.data.get("action", "add")
+        notes = request.data.get("notes", f"NFC {action}")
+
+        try:
+            quantity = float(request.data.get("quantity",0))
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "Quantity must be a number."},
+                status=400
+                )
+
+        if not uid or quantity <= 0:
+            return Response(
+                {"error": "UID and Quantity > 0 are required."},
+                status=400
+                )        
