@@ -132,22 +132,25 @@ class NFC(
 
     # Custom UI panels
     def get_ui_panels(self, request, context: dict, **kwargs):
-        """Return a list of custom panels to be rendered in the InvenTree user interface."""
+        """
+        Show the NFC panel on Part detail and Stock Location pages
+        """
 
         panels = []
 
         # Only display this panel for the 'part' target
-        if context.get("target_model") == "part":
+        if context.get("target_model") in ["part", "stocklocation"]:
             panels.append({
                 "key": "nfc-panel",
-                "title": "NFC",
-                "description": "Custom panel description",
-                "icon": "ti:mood-smile:outline",
+                "title": "NFC Scanner",
+                "description": "Scan NFC tags to manage stock",
+                "icon": "ti:wifi:outline",
                 "source": self.plugin_static_file("Panel.js:renderNFCPanel"),
                 "context": {
                     # Provide additional context data to the panel
                     "settings": self.get_settings_dict(),
-                    "foo": "bar",
+                    "target_model": context.get("target_model"),
+                    "target_id": context.get("target_id"),
                 },
             })
 
