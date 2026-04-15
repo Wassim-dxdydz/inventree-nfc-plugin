@@ -2,15 +2,25 @@
 
 from django.contrib import admin
 
-from .models import ExampleModel
+from .models import NFCTagLink
 
 
-@admin.register(ExampleModel)
-class ExampleModelAdmin(admin.ModelAdmin):
-    """Admin interface for the ExampleModel."""
+@admin.register(NFCTagLink)
+class NFCTagLinkAdmin(admin.ModelAdmin):
+    """Admin interface for the NFCTagLink"""
 
     list_display = (
-        "user",
-        "counter",
+        "uid",
+        "part",
+        "linked_at",
+        "linked_by"
     )
-    list_filter = ("user",)
+
+    list_filter = (
+        "uid",
+    )
+
+    search_fields = (
+        "uid",
+        "part__name"
+    )
