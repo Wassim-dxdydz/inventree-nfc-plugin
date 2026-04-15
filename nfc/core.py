@@ -158,7 +158,9 @@ class NFC(
 
     # Custom dashboard items
     def get_ui_dashboard_items(self, request, context: dict, **kwargs):
-        """Return a list of custom dashboard items to be rendered in the InvenTree user interface."""
+        """
+        Show NFC Dashboard item for staff users only.
+        """
 
         # Example: only display for 'staff' users
         if not request.user or not request.user.is_staff:
@@ -169,13 +171,12 @@ class NFC(
         items.append({
             "key": "nfc-dashboard",
             "title": "NFC Dashboard Item",
-            "description": "Custom dashboard item",
-            "icon": "ti:dashboard:outline",
+            "description": "Scan NFC tags to manage stock",
+            "icon": "ti:wifi:outline",
             "source": self.plugin_static_file("Dashboard.js:renderNFCDashboardItem"),
             "context": {
                 # Provide additional context data to the dashboard item
                 "settings": self.get_settings_dict(),
-                "bar": "foo",
             },
         })
 
