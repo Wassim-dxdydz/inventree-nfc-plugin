@@ -1,7 +1,7 @@
 """NFC-based stock management plugin"""
 
-import threading
 import logging
+import threading
 import time
 
 from plugin import InvenTreePlugin
@@ -16,6 +16,7 @@ from plugin.mixins import (
 from . import PLUGIN_VERSION
 
 log = logging.getLogger(__name__)
+
 
 class NFC(
     AppMixin, LocateMixin, SettingsMixin, UrlsMixin, UserInterfaceMixin, InvenTreePlugin
@@ -45,16 +46,16 @@ class NFC(
     # Ref: https://docs.inventree.org/en/latest/plugins/mixins/settings/
     SETTINGS = {
         "POLL_INTERVAL": {
-            "name" : "Poll interval (seconds)",
-            "description" : "How often to poll the NFC reader fo a new tag.",
-            "validator" : int,
-            "default" : 1,
+            "name": "Poll interval (seconds)",
+            "description": "How often to poll the NFC reader for a new tag.",
+            "validator": int,
+            "default": 1,
         },
-        "AUTO_REDIRECT" : {
-            "name" : "auto-redirect on scan",
-            "description" : "Automatically navigate to the Part page when a known tag is scanned",
-            "validator" : bool,
-            "default" : True,
+        "AUTO_REDIRECT": {
+            "name": "auto-redirect on scan",
+            "description": "Automatically navigate to the Part page when a known tag is scanned",
+            "validator": bool,
+            "default": True,
         },
     }
 
@@ -70,7 +71,7 @@ class NFC(
         if self._reader_thread and self._reader_thread.is_alive():
             return
         self._stop_event.clear()
-        self._reader_thread =  threading.Thread(
+        self._reader_thread = threading.Thread(
             target=self._reader_loop,
             daemon=True,
             name="nfc-reader-thread",
@@ -98,7 +99,7 @@ class NFC(
                     last_uid = uid
                     log.info(f"NFC scan detected : {uid}")
                 if not uid or uid == "WAITING":
-                    last_uid =  None
+                    last_uid = None
                 time.sleep(1)
             except Exception as e:
                 log.error(f"NFC reader loop error : {e}")
