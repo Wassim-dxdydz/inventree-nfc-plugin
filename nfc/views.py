@@ -52,7 +52,7 @@ class NFCTagView(APIView):
             link = NFCTagLink.objects.get(uid=uid.upper())
             part = link.part
             return Response({
-                "uid": True,
+                "found": True,
                 "uid": uid.upper(),
                 "part_id": part.pk,
                 "part_name": part.name,

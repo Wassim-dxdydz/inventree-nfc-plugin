@@ -43,6 +43,11 @@ class NFC(
     # Render custom UI elements to the plugin settings page
     ADMIN_SOURCE = "Settings.js:renderPluginSettings"
 
+    _last_scanned_uid: ClassVar[str | None] = None
+    _lock: ClassVar[threading.Lock] = threading.Lock()
+    _reader_thread: ClassVar[threading.Thread | None] = None
+    _stop_event: ClassVar[threading.Event] = threading.Event()
+
     # Plugin settings (from SettingsMixin)
     # Ref: https://docs.inventree.org/en/latest/plugins/mixins/settings/
     SETTINGS: ClassVar[dict] = {
@@ -93,7 +98,7 @@ class NFC(
         last_uid = None
         while not self._stop_event.is_set():
             try:
-                uid = read_nfc_tag
+                uid = read_nfc_tag()
                 if uid and uid != "WAITING" and uid != last_uid:
                     with NFC._lock:
                         NFC._last_scanned_uid = uid
@@ -121,12 +126,14 @@ class NFC(
     def setup_urls(self):
         """Configure custom URL endpoints for this plugin."""
         from django.urls import path
-
-        from .views import ExampleView
+        from .views import NFCScanStatusView, NFCTagView, NFCLinkView, NFCStockView
 
         return [
             # Provide path to a simple custom view - replace this with your own views
-            path("example/", ExampleView.as_view(), name="example-view"),
+            path("scan/status/", NFCScanStatusView.as_view(), name="NFC-scan-status"),
+            path("tag/<str:uid>", NFCTagView.as_view(), name="nfc-tag-detail"),
+            path("link/", NFCLinkView.as_view(), name="nfc-link"),
+            path("stock/", NFCStockView.as_view(), name="nfc-stock"),
         ]
 
     # User interface elements (from UserInterfaceMixin)
