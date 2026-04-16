@@ -3,6 +3,7 @@
 import logging
 import threading
 import time
+from typing import ClassVar
 
 from plugin import InvenTreePlugin
 from plugin.mixins import (
@@ -44,7 +45,7 @@ class NFC(
 
     # Plugin settings (from SettingsMixin)
     # Ref: https://docs.inventree.org/en/latest/plugins/mixins/settings/
-    SETTINGS = {
+    SETTINGS: ClassVar[dict] = {
         "POLL_INTERVAL": {
             "name": "Poll interval (seconds)",
             "description": "How often to poll the NFC reader for a new tag.",

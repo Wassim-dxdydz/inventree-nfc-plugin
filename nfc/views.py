@@ -2,7 +2,8 @@
 API Views for the NFC plugin
 """
 
-from rest_framework.permissions import IsAuthenticated
+from typing import ClassVar
+from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -13,7 +14,7 @@ class NFCScanStatusView(APIView):
     The frontend polls this every second while scanning is active
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes: ClassVar = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         """
@@ -38,7 +39,7 @@ class NFCTagView(APIView):
     GET /tag/<uid>/ : check if an NFC tag is linked to a Part.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes: ClassVar = [permissions.IsAuthenticated]
 
     def get(self, request, uid, *args, **kwargs):
         """
@@ -52,7 +53,7 @@ class NFCTagView(APIView):
             part = link.part
             return Response({
                 "uid": True,
-                "part_id": uid.upper(),
+                "uid": uid.upper(),
                 "part_id": part.pk,
                 "part_name": part.name,
                 "part_description": part.description,
@@ -72,7 +73,7 @@ class NFCLinkView(APIView):
     Body: { "uid": "AABBCCDD", "part_id": 42 }
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes: ClassVar = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         from part.models import Part
@@ -92,7 +93,7 @@ class NFCLinkView(APIView):
         except Part.DoesNotExist:
             return Response({"error": f"Part with id {part_id} not found."}, status=404)
 
-        link, created = NFCTagLink.objects.update_or_create(
+        _link, created = NFCTagLink.objects.update_or_create(
             uid=uid,
             defaults={
                 "part": part,
@@ -115,7 +116,7 @@ class NFCStockView(APIView):
     Body: { "uid": "AABBCCDD", "quantity": 5, "action": "add" | "remove", "notes": "optional" }
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes: ClassVar = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         from stock.models import StockItem
