@@ -1,42 +1,31 @@
 """
-API Views for the NFC plugin
+API Views for the NFC plugin.
 """
 
 from typing import ClassVar
-from rest_framework import permissions
+from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 
-class NFCScanStatusView(APIView):
-    """
-    GET - Returns the last scanned NFC UID and clears it.
-    The frontend polls this every second while scanning is active
-    """
-
+class NFCConfigView(APIView):
     permission_classes: ClassVar = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        """
-        GET the last scanned UID
-        """
-
         from .core import NFC
 
-        with NFC._lock:
-            uid = NFC._last_scanned_uid
-            NFC._last_scanned_uid = None
-        if uid:
-            return Response({
-                "found": True,
-                "uid": uid,
-            })
-        return Response({"found": False, "uid": None})
-
+        plugin = NFC()
+        return Response({
+            "agent_base_url": plugin.get_setting("AGENT_BASE_URL"),
+            "scan_timeout_seconds": int(plugin.get_setting("SCAN_TIMEOUT_SECONDS")),
+            "auto_redirect": bool(plugin.get_setting("AUTO_REDIRECT")),
+            "allow_link_from_scan": bool(plugin.get_setting("ALLOW_LINK_FROM_SCAN")),
+        })
 
 class NFCTagView(APIView):
     """
-    GET /tag/<uid>/ : check if an NFC tag is linked to a Part.
+    GET /tag/<uid>/
+    Check if an NFC tag UID is linked to a Part.
     """
 
     permission_classes: ClassVar = [permissions.IsAuthenticated]
@@ -47,6 +36,8 @@ class NFCTagView(APIView):
         """
 
         from .models import NFCTagLink
+
+        uid = uid.strip().upper()
 
         try:
             link = NFCTagLink.objects.get(uid=uid.upper())
@@ -61,15 +52,12 @@ class NFCTagView(APIView):
                 "part_url": f"/part/{part.pk}/",
             })
         except NFCTagLink.DoesNotExist:
-            return Response({
-                "found": False,
-                "uid": uid.upper(),
-            })
-
+            return Response({"found": False, "uid": uid.upper()})
 
 class NFCLinkView(APIView):
     """
-    POST /link/ : link an NFC Tag UID to an InvenTree Part.
+    POST /link/
+    Link an NFC tag UID to an InvenTree Part.
     Body: { "uid": "AABBCCDD", "part_id": 42 }
     """
 
@@ -77,42 +65,46 @@ class NFCLinkView(APIView):
 
     def post(self, request, *args, **kwargs):
         from part.models import Part
-
         from .models import NFCTagLink
 
-        uid = request.data.get("uid", "").strip().upper()
+        uid = str(request.data.get("uid", "")).strip().upper()
         part_id = request.data.get("part_id")
 
         if not uid or not part_id:
             return Response(
-                {"error": "Both 'uid' and 'part_id' are required. "}, status=400
+                {"error": "Both 'uid' and 'part_id' are required."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
             part = Part.objects.get(pk=part_id)
         except Part.DoesNotExist:
-            return Response({"error": f"Part with id {part_id} not found."}, status=404)
+            return Response(
+                {"error": f"Part with id {part_id} not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-        _link, created = NFCTagLink.objects.update_or_create(
+        link, created = NFCTagLink.objects.update_or_create(
             uid=uid,
             defaults={
                 "part": part,
                 "linked_by": request.user,
+                "active": True,
             },
         )
 
         return Response({
             "success": True,
             "created": created,
-            "uid": uid,
+            "uid": link.uid,
             "part_id": part.pk,
             "part_name": part.name,
         })
 
-
 class NFCStockView(APIView):
     """
-    POST /stock/ : add or remove stock for a linked NFC tag.
+    POST /stock/
+    Add or remove stock for a part linked to an NFC tag.
     Body: { "uid": "AABBCCDD", "quantity": 5, "action": "add" | "remove", "notes": "optional" }
     """
 
@@ -120,41 +112,49 @@ class NFCStockView(APIView):
 
     def post(self, request, *args, **kwargs):
         from stock.models import StockItem
-
         from .models import NFCTagLink
 
-        uid = request.data.get("uid", "").strip().upper()
-        action = request.data.get("action", "add")
-        notes = request.data.get("notes", f"NFC {action}")
+        uid = str(request.data.get("uid", "")).strip().upper()
+        stock_item_id = request.data.get("stock_item_id")
+        action = str(request.data.get("action", "add")).strip().lower()
+        notes = str(request.data.get("notes", f"NFC {action}")).strip()
 
         try:
             quantity = float(request.data.get("quantity", 0))
         except (TypeError, ValueError):
-            return Response({"error": "Quantity must be a number."}, status=400)
+            return Response({"error": "Quantity must be a number."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not uid or quantity <= 0:
-            return Response({"error": "UID and Quantity > 0 are required."}, status=400)
-
-        try:
-            link = NFCTagLink.objects.get(uid=uid)
-        except NFCTagLink.DoesNotExist:
-            return Response({"error": "Tag not linked to any Part."}, status=404)
-
-        stock_items = StockItem.objects.filter(part=link.part, deleted=False)
-
-        if not stock_items.exists():
+        if not uid or not stock_item_id or quantity <= 0:
             return Response(
-                {"error": f"No stock items found for aprt '{link.part.name}'."},
-                status=404,
+                {"error": "UID and quantity > 0 are required."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        stock_item = stock_items.first()
+        try:
+            link = NFCTagLink.objects.select_related("part").get(uid=uid)
+        except NFCTagLink.DoesNotExist:
+            return Response(
+                {"error": "Tag not linked to any part."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            stock_item = StockItem.objects.get(
+                pk=stock_item_id,
+                part=link.part,
+                deleted=False,
+            )
+        except StockItem.DoesNotExist:
+            return Response(
+                {"error": F"Matching stock item not found for linked part {link.part.name}."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         if action == "remove":
             if stock_item.quantity < quantity:
                 return Response(
                     {"error": f"Not enough stock. Available: {stock_item.quantity}."},
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             stock_item.take_stock(quantity, request.user, notes=notes)
         else:
