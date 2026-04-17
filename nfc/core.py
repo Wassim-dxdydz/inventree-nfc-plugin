@@ -6,7 +6,6 @@ from typing import ClassVar
 from plugin import InvenTreePlugin
 from plugin.mixins import (
     AppMixin,
-    LocateMixin,
     SettingsMixin,
     UrlsMixin,
     UserInterfaceMixin,
