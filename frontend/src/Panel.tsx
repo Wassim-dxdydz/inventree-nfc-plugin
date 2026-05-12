@@ -1,20 +1,68 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Accordion, Alert, Button, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
-import { IconInfoCircle } from '@tabler/icons-react';
+import { Accordion, Alert, Badge, Button, Group, Loader, Stack, Text, Title } from '@mantine/core';
+import { IconLink, IconTrash, IconWifi } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation} from '@tanstack/react-query';
 
 import { t } from '@lingui/core/macro';
 import { LocalizedComponent } from './locale';
-
 // Import for type checking
-import { INVENTREE_PLUGIN_VERSION } from '@inventreedb/ui';
 import { checkPluginVersion, type InvenTreePluginContext } from '@inventreedb/ui';
-import { ApiEndpoints, apiUrl, ModelType } from '@inventreedb/ui';
+import { ModelType } from '@inventreedb/ui';
 
-// Import table display function
-import { InvenTreeTable, useTable, RowEditAction } from '@inventreedb/ui';
 
+interface NfcConfig {
+    agent_base_url: string;
+    scan_timeout_seconds: number;
+    auto_redirect: boolean;
+    allow_link_from_scan: boolean;
+}
+
+interface TagByPartResponse {
+    found: boolean;
+    uid?: string;
+    part_id?: number;
+    linked_at?: string;
+    linked_by?: string | null;
+}
+
+interface ScanResult {
+    status: 'ok' | 'waiting' | 'no_reader';
+    uid?: string;
+}
+
+interface TagLookupResult {
+    found: boolean;
+    uid?: string;
+    part_id?: number;
+    part_name?: string;
+    part_description?: string;
+    total_stock?: number;
+    part_url?: string;
+}
+
+async function pollForTag(
+    agentBaseUrl: string,
+    timeoutSeconds: number,
+    signal: AbortSignal
+): Promise<string | null>{
+    const deadline = Date.now() + timeoutSeconds * 1000;
+    while (Date.now() < deadline){
+        if (signal.aborted) return null;
+
+        const res = await fetch (`${agentBaseUrl}/scan/once`, {signal}).catch(() => null);
+        if (!res) return null;
+
+        const data: ScanResult = await res.json();
+
+        if (data.status === 'ok' && data.uid) return data.uid;
+        if (data.status === 'no_reader') return null;
+
+        await new Promise((r) => setTimeout(r, 800));
+    }
+
+    return null
+}
 /**
  * Render a custom panel with the provided context.
  * Refer to the InvenTree documentation for the context interface
@@ -26,216 +74,316 @@ function NFCPanel({
     context: InvenTreePluginContext;
 }) {
 
+    console.log('i18n:', context.i18n);
+    console.log('locale:', context.locale)
     // React hooks can be used within plugin components
     useEffect(() => {
-        console.log("useEffect in plugin component:");
-        console.log("- Model:", context.model);
-        console.log("- ID:", context.id);
+        console.log("NFCPanel - Model:", context.model);
+        console.log(" - ID:", context.id);
     }, [context.model, context.id]);
 
     // Memoize the part ID as passed via the context object
-    const partId = useMemo(() => {
-        return context.model == ModelType.part ? context.id || null: null;
-    }, [context.model, context.id]);
+    const partId = useMemo(() => 
+        (context.model === ModelType.part ? context.id ?? null: null) , [context.model, context.id]);
 
-    // Does this InvenTree version support tables in plugins?
-    const supportsTables = useMemo(() => !!context.tables, [context.tables]);
+    // Staff
+    const isStaff = useMemo(() => !!context.user?.isStaff, [context.user]);
 
-    // State management for the API driven table
-    const tableState = useTable('my-custom-table');
-
-    // Custom table properties for the loaded table
-    const tableProps = {
-        enableSelection: true,
-        enablePagination: true,
-        enableRefresh: true,
-        modelType: ModelType.part,
-        params: {
-            active: true
-        },
-        tableFilters: [
-            {
-                name: 'assembly',
-                label: 'Assembly',
-                description: 'Show assembly parts'
-            }
-        ],
-        rowActions: (record: any) => [
-            RowEditAction({
-                onClick: () => {
-                    notifications.show({
-                        title: 'Row Action Clicked',
-                        message: `You clicked the edit action for ${record.name}`,
-                        color: 'blue',
-                    });
-                }
-            })
-        ]
-    };
-
-    // Hello world - counter example
-    const [ counter, setCounter ] = useState<number>(0);
-
-    // Extract context information
-    const instance: string = useMemo(() => {
-        const data = context?.instance ?? {};
-        return JSON.stringify(data, null, 2);
-    }, [context.instance]);
-
-    // Fetch API data from the example API endpoint
-    // It will re-fetch when the partId changes
-    const apiQuery = useQuery(
+    // Config
+    const configQuery = useQuery<NfcConfig>(
         {
-            queryKey: ['apiData', partId],
-            queryFn: async() => {
-                const url = `/plugin/nfc/example/`;
-
-                return context.api.get(url).then((response) => response.data).catch(() => {});
-            }
+            queryKey: ['nfc-config'],
+            queryFn: () => context.api.get('/plugin/nfc/config/').then((r) => r.data),
+            staleTime:60_000,
         },
-        context.queryClient,
+        context.queryClient
     );
 
-    // Custom form to edit the selected part
-    const editPartForm = context.forms.edit({
-        url: apiUrl(ApiEndpoints.part_list, partId),
-        title: "Edit Part",
-        preFormContent: (
-            <Alert title="Custom Plugin Form" color="blue">
-                This is a custom form launched from within a plugin!
-            </Alert>
-        ),
-        fields: {
-            name: {},
-            description: {},
-            category: {},
+    const config = configQuery.data;
+
+    // Tag linked to this part
+    const tagByPartQuery =  useQuery<TagByPartResponse>(
+        {
+            queryKey: ['nfc-tag-by-part', partId],
+            enabled: !!partId,
+            queryFn: () => context.api.get(`/plugin/nfc/tag/by-part/${partId}/`).then((r) => r.data),
+            staleTime:60_000,
         },
-        successMessage: null,
-        onFormSuccess: () => {
+        context.queryClient
+    );
+
+    const linkedTag =  tagByPartQuery.data?.found ? tagByPartQuery.data :  null;
+
+    // Unlink
+    const unlinkMutation =  useMutation(
+        {
+            mutationFn: (uid: string) => context.api.delete(`/plugin/nfc/link/${uid}`),
+            onSuccess: () => {
+                context.queryClient.invalidateQueries({queryKey: ['nfc-tag-by-part', partId],});
+                notifications.show({
+                    title: t`Tag unlinked`,
+                    message: t`Could not remove the NFC tag. Try again.`,
+                    color: 'red',
+                });
+            },
+        },
+        context.queryClient
+    );
+
+    // Link Scan
+    const [linkScanning, setLinkScanning] = useState(false);
+    const startLinkScan = useCallback(async () => {
+        if (!config || !partId) return;
+        setLinkScanning(true);
+
+        const uid = await pollForTag(
+            config.agent_base_url,
+            config.scan_timeout_seconds,
+            new AbortController().signal
+        )
+
+        if (!uid){
             notifications.show({
-                title: 'Success',
-                message: 'Part updated successfully!',
+                title: t`No tag detected`,
+                message: t`Scan timed out or no reader found.`,
+                color: 'yellow',
+            });
+            setLinkScanning(false);
+            return;
+        }
+
+        try {
+            await context.api.post('/plugin/nfc/link/', { uid, part_id: partId });
+            context.queryClient.invalidateQueries({
+                queryKey: ['nfc-tag-by-part', partId],
+            });
+            notifications.show({
+                title: t`Tag linked`,
+                message: `${uid} → part #${partId}`,
                 color: 'green',
             });
+        } catch (err: any) {
+            notifications.show({
+                title: t`Link failed`,
+                message: err?.response?.data?.error ?? t`Could not link tag. Try again.`,
+                color: 'red',
+            });
         }
-    });
 
-    // Custom callback function example
-    const openForm = useCallback(() => {
-        editPartForm?.open();
-    }, [editPartForm]);
+        setLinkScanning(false);
+    }, [config, partId, context.api, context.queryClient]);
 
-    // Navigation functionality example
-    const gotoDashboard = useCallback(() => {
-        context.navigate('/home');
-    }, [context]);
+    // Find scan
+    const [findScanning, setFindScanning] = useState(false);
+    const [findResult, setFindResult] = useState<TagLookupResult | null>(null);
+
+    const startFindScan = useCallback(async () => {
+        if (!config) return;
+        setFindScanning(true);
+        setFindResult(null);
+
+        const uid = await pollForTag(
+            config.agent_base_url,
+            config.scan_timeout_seconds,
+            new AbortController().signal
+        );
+
+        if (!uid) {
+            notifications.show({
+                title: t`No tag detected`,
+                message: t`Scan timed out or no reader found.`,
+                color: 'yellow',
+            });
+            setFindScanning(false);
+            return;
+        }
+
+        try {
+            const res = await context.api.get(`/plugin/nfc/tag/${uid}/`);
+            const data: TagLookupResult = res.data;
+            setFindResult(data);
+
+            if (data.found && config.auto_redirect && data.part_url) {
+                context.navigate(data.part_url);
+            }
+        } catch {
+            notifications.show({
+                title: t`Lookup failed`,
+                message: t`Could not check this tag. Try again.`,
+                color: 'red',
+            });
+        }
+
+        setFindScanning(false);
+    }, [config, context.api, context.navigate]);
+
+    // Render
+    if (configQuery.isLoading) {
+        return (
+            <Group justify='center' p='md'>
+                <Loader size='sm' />
+                <Text c='dimmed'>{t`Loading NFC config…`}</Text>
+            </Group>
+        );
+    }
+
+    if (configQuery.isError || !config) {
+        return (
+            <Alert color='red' title={t`Config error`}>
+                {t`Could not load NFC plugin settings.`}
+            </Alert>
+        );
+    }
 
     return (
-        <>
-        {editPartForm.modal}
-        <Accordion defaultValue='main'>
-        <Accordion.Item value='main'>
-            <Accordion.Control>
-                <Title c={context.theme.primaryColor}  order={4}>Custom Data Examples</Title>
-            </Accordion.Control>
-        <Accordion.Panel>
-            <SimpleGrid cols={2}>
-                <Alert icon={<IconInfoCircle />} title={"Version Information"} color="blue">
-                    <Stack gap='xs'>
-                        <Text>Frontend Version: {context?.version?.inventree || 'unknown'}</Text>
-                        <Text>Plugin Version: {INVENTREE_PLUGIN_VERSION}</Text>
-                    </Stack>
-                </Alert>
-                <Alert title='Translated Text' color='grape'>
-                    <Stack gap='xs'>
-                        <Text>{t`Translated text, provided by custom code!`}</Text>
-                        <Text>{t`Translations are loaded automatically.`}</Text>
-                        <Text>{t`Fallback locale is used if no translation is available`}</Text>
-                    </Stack>
-                </Alert>
-                <Group justify='apart' wrap='nowrap' gap='sm'>
-                    <Button color='blue' onClick={gotoDashboard}>
-                        Go to Dashboard
-                    </Button>
-                    {partId && <Button color='green' onClick={openForm}>
-                        Edit  Part
-                    </Button>}
-                    <Button onClick={() => setCounter(counter + 1)}>
-                        Increment Counter
-                    </Button>
-                    <Text size='xl'>Counter: {counter}</Text>
-                </Group>
-                {instance ? (
-                    <Alert title="Instance Data" color="blue">
-                        {instance}
-                    </Alert>
-                ) : (
-                    <Alert title="No Instance" color="yellow">
-                        No instance data available
-                    </Alert>
-                )}
-                {apiQuery.isFetched && apiQuery.data && (
-                <Alert color="green" title="API Query Data">
-                        {apiQuery.isFetching || apiQuery.isLoading ? (
-                        <Text>Loading...</Text>
-                        ) : (
-                        <Stack gap='xs'>
-                            <Text>Part Count: {apiQuery.data.part_count}</Text>
-                            <Text>Today: {apiQuery.data.today}</Text>
-                            <Text>Random Text: {apiQuery.data.random_text}</Text>
-                            <Button
-                                disabled={apiQuery.isFetching || apiQuery.isLoading}
-                                onClick={() => apiQuery.refetch()}>
-                                Reload Data
-                            </Button>
+        <Accordion defaultValue='scan'>
+
+            {/* Link / Unlink — staff + part page only */}
+            {partId && isStaff && (
+                <Accordion.Item value='link'>
+                    <Accordion.Control>
+                        <Title c={context.theme.primaryColor} order={4}>
+                            {t`NFC Tag`}
+                        </Title>
+                    </Accordion.Control>
+                    <Accordion.Panel>
+                        <Stack gap='sm'>
+                            {tagByPartQuery.isLoading ? (
+                                <Group>
+                                    <Loader size='xs' />
+                                    <Text size='sm' c='dimmed'>{t`Checking tag…`}</Text>
+                                </Group>
+                            ) : linkedTag ? (
+                                <>
+                                    <Alert
+                                        color='teal'
+                                        title={t`Tag linked`}
+                                        icon={<IconWifi size={16} />}
+                                    >
+                                        <Stack gap={4}>
+                                            <Group gap='xs'>
+                                                <Text size='sm' fw={600}>{t`UID:`}</Text>
+                                                <Badge variant='outline' color='teal'>
+                                                    {linkedTag.uid}
+                                                </Badge>
+                                            </Group>
+                                            {linkedTag.linked_by && (
+                                                <Text size='xs' c='dimmed'>
+                                                    {t`Linked by`} {linkedTag.linked_by}
+                                                    {linkedTag.linked_at &&
+                                                        ` — ${new Date(linkedTag.linked_at).toLocaleDateString()}`}
+                                                </Text>
+                                            )}
+                                        </Stack>
+                                    </Alert>
+                                    <Button
+                                        color='red'
+                                        variant='light'
+                                        leftSection={<IconTrash size={16} />}
+                                        loading={unlinkMutation.isPending}
+                                        onClick={() => unlinkMutation.mutate(linkedTag.uid!)}
+                                    >
+                                        {t`Unlink tag`}
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <Text size='sm' c='dimmed'>
+                                        {t`No NFC tag linked to this part.`}
+                                    </Text>
+                                    <Button
+                                        color={context.theme.primaryColor}
+                                        leftSection={
+                                            linkScanning
+                                                ? <Loader size={14} color='white' />
+                                                : <IconLink size={16} />
+                                        }
+                                        loading={linkScanning}
+                                        onClick={startLinkScan}
+                                    >
+                                        {linkScanning ? t`Waiting for tag…` : t`Link NFC Tag`}
+                                    </Button>
+                                </>
+                            )}
                         </Stack>
-                    )}
-                </Alert>
-                )}
-            </SimpleGrid>
-        </Accordion.Panel>
-        </Accordion.Item>
-        <Accordion.Item value='table'>
-            <Accordion.Control>
-                <Title c={context.theme.primaryColor}  order={4}>Custom Table Example</Title>
-            </Accordion.Control>
-        <Accordion.Panel>
-        {
-            supportsTables ? (
-                <InvenTreeTable
-                    url={apiUrl(ApiEndpoints.part_list)}
-                    tableState={tableState}
-                    context={context}
-                    props={tableProps}
-                    columns={[
-                        {
-                            accessor: 'name',
-                            switchable: false,
-                        },
-                        {
-                            accessor: 'IPN',
-                        },
-                        {
-                            accessor: 'description',
-                        }
-                    ]}
-                />
-            ) : (
-                <Alert title="Table Not Supported" color="red">
-                    {
-                        'This version of InvenTree does not support tables within plugins.'
-                    }
-                    <br />
-                    {
-                        'Please upgrade to a more recent version of InvenTree to use this feature.'
-                    }
-                </Alert>
-            )
-        }
-        </Accordion.Panel>
-        </Accordion.Item>
+                    </Accordion.Panel>
+                </Accordion.Item>
+            )}
+
+            {/* Scan to Find — everyone */}
+            <Accordion.Item value='scan'>
+                <Accordion.Control>
+                    <Title c={context.theme.primaryColor} order={4}>
+                        {t`Scan to Find`}
+                    </Title>
+                </Accordion.Control>
+                <Accordion.Panel>
+                    <Stack gap='sm'>
+                        <Button
+                            color={context.theme.primaryColor}
+                            leftSection={
+                                findScanning
+                                    ? <Loader size={14} color='white' />
+                                    : <IconWifi size={16} />
+                            }
+                            loading={findScanning}
+                            onClick={startFindScan}
+                        >
+                            {findScanning ? t`Waiting for tag…` : t`Scan Tag`}
+                        </Button>
+
+                        {findResult && (
+                            findResult.found ? (
+                                <Alert color='teal' title={t`Part found`}>
+                                    <Stack gap={4}>
+                                        <Text fw={600}>{findResult.part_name}</Text>
+                                        {findResult.part_description && (
+                                            <Text size='sm' c='dimmed'>
+                                                {findResult.part_description}
+                                            </Text>
+                                        )}
+                                        <Text size='sm'>
+                                            {t`Stock:`} {findResult.total_stock ?? '—'}
+                                        </Text>
+                                        <Button
+                                            size='xs'
+                                            variant='light'
+                                            color='teal'
+                                            mt={4}
+                                            onClick={() =>
+                                                context.navigate(findResult.part_url!)
+                                            }
+                                        >
+                                            {t`Go to part`}
+                                        </Button>
+                                    </Stack>
+                                </Alert>
+                            ) : (
+                                <Alert color='yellow' title={t`Unknown tag`}>
+                                    <Stack gap='xs'>
+                                        <Text size='sm'>
+                                            {t`No part linked to`}{' '}
+                                            <Badge variant='outline'>{findResult.uid}</Badge>
+                                        </Text>
+                                        {config.allow_link_from_scan && (
+                                            <Button
+                                                size='xs'
+                                                variant='light'
+                                                color='yellow'
+                                                onClick={() => context.navigate('/part/')}
+                                            >
+                                                {t`Browse parts to link`}
+                                            </Button>
+                                        )}
+                                    </Stack>
+                                </Alert>
+                            )
+                        )}
+                    </Stack>
+                </Accordion.Panel>
+            </Accordion.Item>
+
         </Accordion>
-        </>
     );
 }
 
@@ -244,7 +392,7 @@ export function renderNFCPanel(context: InvenTreePluginContext) {
     checkPluginVersion(context);
 
     return (
-        <LocalizedComponent locale={context.locale}>
+        <LocalizedComponent locale={context.locale} context={context}>
             <NFCPanel context={context} />
         </LocalizedComponent>
     );

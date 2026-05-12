@@ -11,5 +11,5 @@ export function NFCSpotlightAction(context: InvenTreePluginContext) {
 
     // Simply display an alert when the action is executed
     // Replace this with any custom action
-    alert(`Hello, ${context.user?.username?.()}`);
+    alert(`Hello, ${context.user?.username?.() ?? 'unknown'}`);
 }

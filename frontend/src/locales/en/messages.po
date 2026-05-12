@@ -13,18 +13,159 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#: src/Dashboard.tsx:87
+#: src/Panel.tsx:145
+#: src/Panel.tsx:191
+msgid "No tag detected"
+msgstr "No tag detected"
+
+#: src/Dashboard.tsx:88
+#: src/Panel.tsx:146
+#: src/Panel.tsx:192
+msgid "Scan timed out or no reader found."
+msgstr "Scan timed out or no reader found."
+
+#: src/Dashboard.tsx:104
+#: src/Panel.tsx:209
+msgid "Lookup failed"
+msgstr "Lookup failed"
+
+#: src/Dashboard.tsx:105
+msgid "Could not check this tag."
+msgstr "Could not check this tag."
+
+#: src/Dashboard.tsx:115
+msgid "Plugin:"
+msgstr "Plugin:"
+
+#: src/Dashboard.tsx:116
+msgid "User:"
+msgstr "User:"
+
+#: src/Dashboard.tsx:126
+#: src/Panel.tsx:302
+#: src/Panel.tsx:330
+msgid "Waiting for tag…"
+msgstr "Waiting for tag…"
+
+#: src/Dashboard.tsx:126
+msgid "Scan NFC Tag"
+msgstr "Scan NFC Tag"
+
+#: src/Dashboard.tsx:131
+#: src/Panel.tsx:335
+msgid "Part found"
+msgstr "Part found"
+
+#: src/Dashboard.tsx:134
+#: src/Panel.tsx:344
+msgid "Stock:"
+msgstr "Stock:"
+
+#: src/Dashboard.tsx:141
+#: src/Panel.tsx:355
+msgid "Go to part"
+msgstr "Go to part"
+
+#: src/Dashboard.tsx:146
+#: src/Panel.tsx:360
+msgid "Unknown tag"
+msgstr "Unknown tag"
+
+#: src/Dashboard.tsx:148
+#: src/Panel.tsx:363
+msgid "No part linked to"
+msgstr "No part linked to"
+
 #: src/Panel.tsx:96
-msgid "Translated Text"
-msgstr "Translated Text"
+#~ msgid "Translated Text"
+#~ msgstr "Translated Text"
 
 #: src/Panel.tsx:97
-msgid "Translated text, provided by custom code!"
-msgstr "Translated text, provided by custom code!"
+#~ msgid "Translated text, provided by custom code!"
+#~ msgstr "Translated text, provided by custom code!"
 
 #: src/Panel.tsx:98
-msgid "Translations are loaded automatically."
-msgstr "Translations are loaded automatically."
+#~ msgid "Translations are loaded automatically."
+#~ msgstr "Translations are loaded automatically."
 
 #: src/Panel.tsx:99
-msgid "Fallback locale is used if no translation is available"
-msgstr "Fallback locale is used if no translation is available"
+#~ msgid "Fallback locale is used if no translation is available"
+#~ msgstr "Fallback locale is used if no translation is available"
+
+#: src/Panel.tsx:122
+msgid "Tag unlinked"
+msgstr "Tag unlinked"
+
+#: src/Panel.tsx:123
+msgid "Could not remove the NFC tag. Try again."
+msgstr "Could not remove the NFC tag. Try again."
+
+#: src/Panel.tsx:159
+#: src/Panel.tsx:258
+msgid "Tag linked"
+msgstr "Tag linked"
+
+#: src/Panel.tsx:165
+msgid "Link failed"
+msgstr "Link failed"
+
+#: src/Panel.tsx:166
+msgid "Could not link tag. Try again."
+msgstr "Could not link tag. Try again."
+
+#: src/Panel.tsx:210
+msgid "Could not check this tag. Try again."
+msgstr "Could not check this tag. Try again."
+
+#: src/Panel.tsx:223
+msgid "Loading NFC config…"
+msgstr "Loading NFC config…"
+
+#: src/Panel.tsx:230
+msgid "Config error"
+msgstr "Config error"
+
+#: src/Panel.tsx:231
+msgid "Could not load NFC plugin settings."
+msgstr "Could not load NFC plugin settings."
+
+#: src/Panel.tsx:244
+msgid "NFC Tag"
+msgstr "NFC Tag"
+
+#: src/Panel.tsx:252
+msgid "Checking tag…"
+msgstr "Checking tag…"
+
+#: src/Panel.tsx:263
+msgid "UID:"
+msgstr "UID:"
+
+#: src/Panel.tsx:270
+msgid "Linked by"
+msgstr "Linked by"
+
+#: src/Panel.tsx:284
+msgid "Unlink tag"
+msgstr "Unlink tag"
+
+#: src/Panel.tsx:290
+msgid "No NFC tag linked to this part."
+msgstr "No NFC tag linked to this part."
+
+#: src/Panel.tsx:302
+msgid "Link NFC Tag"
+msgstr "Link NFC Tag"
+
+#: src/Panel.tsx:315
+msgid "Scan to Find"
+msgstr "Scan to Find"
+
+#: src/Panel.tsx:330
+msgid "Scan Tag"
+msgstr "Scan Tag"
+
+#: src/Panel.tsx:373
+msgid "Browse parts to link"
+msgstr "Browse parts to link"

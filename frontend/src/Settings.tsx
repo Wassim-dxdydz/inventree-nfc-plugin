@@ -9,20 +9,24 @@ function PluginSettingsDisplay({
 }) {
 
     return (
-        <Alert color='blue' title='Hello World'>
-            <Text>This is a custom settings page for the NFC plugin!</Text>
-            <Text>Custom UI elements can be rendered here</Text>
-            <Button color="blue" onClick={() => {
-                notifications.show({
-                    title: 'Hello World',
-                    message: 'This is a custom notification from the NFC plugin!',
-                    color: 'blue',
-                });
-            }}>
-                Click Me!
+        <Alert color='blue' title='NFC Plugin'>
+            <Text>Custom settings UI for the NFC plugin.</Text>
+            <Text>Configure the plugin settings from the InvenTree admin panel.</Text>
+            <Button
+                color='blue'
+                mt='sm'
+                onClick={() => {
+                    notifications.show({
+                        title: 'NFC Plugin',
+                        message: 'Settings panel loaded.',
+                        color: 'blue',
+                    });
+                }}
+            >
+                Test Notification
             </Button>
         </Alert>
-    )
+    );
 
 }
 

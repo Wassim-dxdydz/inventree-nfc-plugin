@@ -1,11 +1,11 @@
 msgid ""
 msgstr ""
-"POT-Creation-Date: 2025-08-05 13:54+0000\n"
+"POT-Creation-Date: 2026-05-12 08:01+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: @lingui/cli\n"
-"Language: es\n"
+"Language: zh_Hant\n"
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: \n"
@@ -76,22 +76,6 @@ msgstr ""
 #: src/Panel.tsx:363
 msgid "No part linked to"
 msgstr ""
-
-#: src/Panel.tsx:96
-#~ msgid "Translated Text"
-#~ msgstr "Texto traducido"
-
-#: src/Panel.tsx:97
-#~ msgid "Translated text, provided by custom code!"
-#~ msgstr "¡Texto traducido, proporcionado por código personalizado!"
-
-#: src/Panel.tsx:98
-#~ msgid "Translations are loaded automatically."
-#~ msgstr "Las traducciones se cargan automáticamente"
-
-#: src/Panel.tsx:99
-#~ msgid "Fallback locale is used if no translation is available"
-#~ msgstr ""
 
 #: src/Panel.tsx:122
 msgid "Tag unlinked"

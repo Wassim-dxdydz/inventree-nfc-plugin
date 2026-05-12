@@ -73,13 +73,15 @@ class NFC(
     def setup_urls(self):
         """Configure custom URL endpoints for this plugin."""
         from django.urls import path
-        from .views import NFCConfigView, NFCLinkView, NFCStockView, NFCTagView
+        from .views import NFCConfigView, NFCLinkView, NFCStockView, NFCTagView, NFCTagByPartView, NFCUnlinkView
 
         return [
             path("config/", NFCConfigView.as_view(), name="nfc-config"),
+            path("tag/by-part/<int:part_id>/", NFCTagByPartView.as_view(), name="nfc-tag-by-part"),
             path("tag/<str:uid>/", NFCTagView.as_view(), name="nfc-tag-detail"),
             path("link/", NFCLinkView.as_view(), name="nfc-link"),
             path("stock/", NFCStockView.as_view(), name="nfc-stock"),
+            path("link/<str:uid>/", NFCUnlinkView.as_view(), name="nfc-unlink"),
         ]
 
     # User interface elements (from UserInterfaceMixin)

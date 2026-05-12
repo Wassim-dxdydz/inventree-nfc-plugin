@@ -12,12 +12,12 @@ from django.db import models
 class NFCTagLink(models.Model):
     """Maps an NFC tag UID to an InvenTree Part"""
 
-    uid = models.CharField(max_length=64, unique=True, verbose_name="NFC Tag UID")
+    uid = models.CharField(max_length=64, verbose_name="NFC Tag UID")
 
     part = models.ForeignKey(
         "part.Part",
         on_delete=models.CASCADE,
-        related_name="nfc_tags",
+        related_name="nfc_tag",
         verbose_name="Linked Part",
     )
 
@@ -34,6 +34,18 @@ class NFCTagLink(models.Model):
     class Meta:
         app_label = "nfc"
         ordering = ["-linked_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["uid"],
+                condition=models.Q(active=True),
+                name="unique_active_uid",
+            ),
+            models.UniqueConstraint(
+                fields=["part"],
+                condition=models.Q(active=True),
+                name="unique_active_part",
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         self.uid = (self.uid or "").strip().upper()
