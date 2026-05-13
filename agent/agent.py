@@ -124,7 +124,8 @@ def scan_once():
 # ── Start ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    from waitress import serve
     monitor = CardMonitor()
     monitor.addObserver(NFCObserver())
-    log.info("Agent ready on http://127.0.0.1:5050")
-    app.run(host="127.0.0.1", port=5050, debug=False, use_reloader=False)
+    log.info("Agent ready on http://127.0.0.1:8765")
+    serve(app, host="127.0.0.1", port=8765)

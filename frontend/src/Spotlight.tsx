@@ -1,6 +1,5 @@
-
 // Import for type checking
-import { type InvenTreePluginContext } from '@inventreedb/ui';
+import type { InvenTreePluginContext } from '@inventreedb/ui';
 
 /**
  * Custom spotlight action with the provided context
@@ -8,8 +7,7 @@ import { type InvenTreePluginContext } from '@inventreedb/ui';
  * https://docs.inventree.org/en/stable/extend/plugins/ui/#plugin-context
  */
 export function NFCSpotlightAction(context: InvenTreePluginContext) {
-
-    // Simply display an alert when the action is executed
-    // Replace this with any custom action
-    alert(`Hello, ${context.user?.username?.() ?? 'unknown'}`);
+  // Simply display an alert when the action is executed
+  // Replace this with any custom action
+  alert(`Hello, ${context.user?.username?.() ?? 'unknown'}`);
 }
