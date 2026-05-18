@@ -1,3 +1,7 @@
+"""
+Tests for the NFC agent Flask app.
+All pyscard calls are mocked, so no USB reader required.
+"""
 import pytest
 from unittest.mock import MagicMock, patch
 
