@@ -72,3 +72,12 @@ def test_link_view_part_already_linked(auth_client, nfc_link_factory):
     link = nfc_link_factory(uid="AABBCCDD", active=True)
     res = auth_client.post("/plugin/nfc/link/", {"uid": "11223344", "part_id": link.part.pk})
     assert res.status_code == 409
+
+# DELETE /link/<uid>/
+
+@pytest.mark.django_db
+def test_unlink_view_success(staff_client, nfc_link_factory):
+    nfc_link_factory(uid="AABBCCDD", active=True)
+    res = staff_client.delete("/plugin/nfc/link/AABBCCDD/")
+    assert res.status_code == 200
+    assert res.data["success"] is True
