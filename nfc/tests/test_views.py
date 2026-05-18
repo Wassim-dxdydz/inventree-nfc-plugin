@@ -93,3 +93,18 @@ def test_unlink_requires_staff(auth_client, nfc_link_factory):
     nfc_link_factory(uid="AABBCCDD", active=True)
     res = auth_client.delete("/plugin/nfc/link/AABBCCDD/")
     assert res.status_code == 403
+
+# GET /tag/by-part/<id>/
+
+@pytest.mark.django_db
+def test_tag_by_part_found(auth_client, nfc_link_factory):
+    link = nfc_link_factory(uid="AABBCCDD", active=True)
+    res = auth_client.get(f"/plugin/nfc/tag/by-part/{link.part.pk}/")
+    assert res.data["found"] is True
+    assert res.data["uid"] == "AABBCCDD"
+
+@pytest.mark.django_db
+def test_tag_by_part_not_found(auth_client, part_factory):
+    part = part_factory(name="Unlinked Part")
+    res = auth_client.get(f"/plugin/nfc/tag/by-part/{part.pk}/")
+    assert res.data["found"] is False
