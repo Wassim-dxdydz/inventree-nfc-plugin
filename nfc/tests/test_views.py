@@ -86,3 +86,10 @@ def test_unlink_view_success(staff_client, nfc_link_factory):
 def test_unlink_view_not_found(staff_client):
     res = staff_client.delete("/plugin/nfc/link/NOTEXIST/")
     assert res.status_code == 404
+
+@pytest.mark.django_db
+def test_unlink_requires_staff(auth_client, nfc_link_factory):
+    """Non-staff users must be rejected with 403."""
+    nfc_link_factory(uid="AABBCCDD", active=True)
+    res = auth_client.delete("/plugin/nfc/link/AABBCCDD/")
+    assert res.status_code == 403
