@@ -53,3 +53,23 @@ def test_scan_once_returns_uid(client):
         res = client.post("/scan/once", json={"timeout": 5})
         assert res.status_code == 200
         assert res.get_json()["uid"] == "AABBCCDD"
+
+def test_scan_once_timeout(client):
+    """
+    Agent returns timeout error when no tag is scanned within the window.
+    """
+
+    with patch("agent.agent.readers", return_value = [MagicMock()]):
+        res = client.post("/scan/once", json={"timeout": 0.1})
+        assert res.status_code == 408
+        assert res.get_json()["error"] == "timeout"
+
+def test_scan_once_no_reader(client):
+    """
+    Agent returns error 503 when no reader is plugged in.
+    """
+
+    with patch("agent.agent.readers", return_value = []):
+        res = client.post("/scan/once", json={"timeout": 1})
+        assert res.status_code == 503
+        assert res.get_json()["error"] == "no_reader"
