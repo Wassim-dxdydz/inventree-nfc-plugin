@@ -28,3 +28,9 @@ def test_tag_view_found(auth_client, nfc_link_factory):
     assert res.data["found"] is True
     assert res.data["uid"] == "AABBCCDD"
     assert res.data["part_id"] == link.part.pk
+
+@pytest.mark.django_db
+def test_tag_view_not_found(auth_client):
+    res = auth_client.get("/plugin/nfc/tag/UNKNOWN1/")
+    assert res.status_code == 200
+    assert res.data["found"] is False
