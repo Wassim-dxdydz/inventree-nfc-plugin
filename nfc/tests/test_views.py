@@ -41,3 +41,10 @@ def test_tag_view_uid_case_insensitive(auth_client, nfc_link_factory):
     nfc_link_factory(uid="AABBCCDD", active=True)
     res = auth_client.get("/plugin/nfc/tag/aabbccdd/")
     assert res.data["found"] is True
+
+@pytest.mark.django_db
+def test_link_view_success(auth_client, part_factory):
+    part = part_factory(name="Resistor")
+    res = auth_client.post("/plugin/nfc/link/", {"uid": "AABBCCDD", "part_id": part.pk})
+    assert res.status_code == 201 or res.data.get("success") is True
+    assert res.data["uid"] == "AABBCCDD"
