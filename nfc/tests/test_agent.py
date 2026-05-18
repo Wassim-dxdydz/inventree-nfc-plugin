@@ -41,3 +41,15 @@ def test_health_no_reader(client):
     assert res.status_code == 200
     data = res.get_json()
     assert data["reader_connected"] is True
+
+def test_scan_once_returns_uid(client):
+    """
+    Agent unblocks immediately when a tag UID is pre-set in state.
+    """
+
+    with patch("agent.agent.readers", return_value = [MagicMock()]):
+        from agent.agent import _state
+        _state.set("AABBCCDD")
+        res = client.post("/scan/once", json={"timeout": 5})
+        assert res.status_code == 200
+        assert res.get_json()["uid"] == "AABBCCDD"
