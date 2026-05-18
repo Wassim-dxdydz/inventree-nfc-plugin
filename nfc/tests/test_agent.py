@@ -33,3 +33,11 @@ def test_health_reader_connected(client):
     data = res.get_json()
     assert data["status"] == "ok"
     assert data["reader_connected"] is True
+
+def test_health_no_reader(client):
+    with patch("agent.agent.readers", return_value = []):
+        res = client.get("/health")
+    
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["reader_connected"] is True
