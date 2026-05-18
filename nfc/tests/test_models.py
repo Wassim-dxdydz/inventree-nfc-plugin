@@ -16,3 +16,9 @@ def test_uid_is_stripped_on_save(nfc_link_factory):
     """Leading/trailing whitespace must be stripped from UID."""
     link = nfc_link_factory(uid="  AABBCCDD  ")
     assert link.uid == "AABBCCDD"
+
+@pytest.mark.django_db
+def test_str_representation(nfc_link_factory):
+    """__str__ should return 'NFC <uid> : <part name>'."""
+    link = nfc_link_factory(uid="AABBCCDD")
+    assert str(link) == f"NFC AABBCCDD : {link.part.name}"
