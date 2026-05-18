@@ -19,3 +19,12 @@ def staff_client(django_user_model):
     client = APIClient()
     client.force_authenticate(user=user)
     return client
+
+@pytest.mark.django_db
+def test_tag_view_found(auth_client, nfc_link_factory):
+    link = nfc_link_factory(uid="AABBCCDD", active=True)
+    res = auth_client.get(f"/plugin/nfc/tag/AABBCCDD/")
+    assert res.status_code == 200
+    assert res.data["found"] is True
+    assert res.data["uid"] == "AABBCCDD"
+    assert res.data["part_id"] == link.part.pk
