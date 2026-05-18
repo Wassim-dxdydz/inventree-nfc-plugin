@@ -81,3 +81,8 @@ def test_unlink_view_success(staff_client, nfc_link_factory):
     res = staff_client.delete("/plugin/nfc/link/AABBCCDD/")
     assert res.status_code == 200
     assert res.data["success"] is True
+
+@pytest.mark.django_db
+def test_unlink_view_not_found(staff_client):
+    res = staff_client.delete("/plugin/nfc/link/NOTEXIST/")
+    assert res.status_code == 404
