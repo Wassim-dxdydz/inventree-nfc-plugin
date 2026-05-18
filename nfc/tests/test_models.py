@@ -32,3 +32,21 @@ def test_unique_active_uid_constraint(nfc_link_factory, part_factory):
     nfc_link_factory(uid="AABBCCDD", part=part1, active=True)
     with pytest.raises(IntegrityError):
         nfc_link_factory(uid="AABBCCDD", part=part2, active=True)
+
+@pytest.mark.django_db
+def test_inactive_uid_allows_reuse(nfc_link_factory, part_factory):
+    """An inactive link's UID can be reused for a new active link."""
+    part1 = part_factory(name="Part A")
+    part2 = part_factory(name="Part B")
+    nfc_link_factory(uid="AABBCCDD", part=part1, active=False)
+    link2 = nfc_link_factory(uid="AABBCCDD", part=part2, active=True)
+    assert link2.pk is not None
+
+@pytest.mark.django_db
+def test_unique_active_part_constraint(nfc_link_factory, part_factory):
+    """A part can only have one active NFC tag at a time."""
+    from django.db import IntegrityError
+    part = part_factory(name="Part A")
+    nfc_link_factory(uid="AABBCCDD", part=part, active=True)
+    with pytest.raises(IntegrityError):
+        nfc_link_factory(uid="11223344", part=part, active=True)
