@@ -48,3 +48,8 @@ def test_link_view_success(auth_client, part_factory):
     res = auth_client.post("/plugin/nfc/link/", {"uid": "AABBCCDD", "part_id": part.pk})
     assert res.status_code == 201 or res.data.get("success") is True
     assert res.data["uid"] == "AABBCCDD"
+
+@pytest.mark.django_db
+def test_link_view_missing_fields(auth_client):
+    res = auth_client.post("/plugin/nfc/link/", {"uid": "AABBCCDD"})
+    assert res.status_code == 400
