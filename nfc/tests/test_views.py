@@ -20,6 +20,8 @@ def staff_client(django_user_model):
     client.force_authenticate(user=user)
     return client
 
+# GET /tag/<uid>/
+
 @pytest.mark.django_db
 def test_tag_view_found(auth_client, nfc_link_factory):
     link = nfc_link_factory(uid="AABBCCDD", active=True)
@@ -42,6 +44,8 @@ def test_tag_view_uid_case_insensitive(auth_client, nfc_link_factory):
     res = auth_client.get("/plugin/nfc/tag/aabbccdd/")
     assert res.data["found"] is True
 
+# POST /link/
+
 @pytest.mark.django_db
 def test_link_view_success(auth_client, part_factory):
     part = part_factory(name="Resistor")
@@ -53,3 +57,18 @@ def test_link_view_success(auth_client, part_factory):
 def test_link_view_missing_fields(auth_client):
     res = auth_client.post("/plugin/nfc/link/", {"uid": "AABBCCDD"})
     assert res.status_code == 400
+
+@pytest.mark.django_db
+def test_link_view_duplicate_uid(auth_client, nfc_link_factory, part_factory):
+    """Linking a UID already active on another part must return 409."""
+    nfc_link_factory(uid="AABBCCDD", active=True)
+    part2 = part_factory(name="Capacitor")
+    res = auth_client.post("/plugin/nfc/link/", {"uid": "AABBCCDD", "part_id": part2.pk})
+    assert res.status_code == 409
+
+@pytest.mark.django_db
+def test_link_view_part_already_linked(auth_client, nfc_link_factory):
+    """A part that already has an active tag must return 409."""
+    link = nfc_link_factory(uid="AABBCCDD", active=True)
+    res = auth_client.post("/plugin/nfc/link/", {"uid": "11223344", "part_id": link.part.pk})
+    assert res.status_code == 409
