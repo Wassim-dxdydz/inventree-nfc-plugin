@@ -73,3 +73,15 @@ def test_scan_once_no_reader(client):
         res = client.post("/scan/once", json={"timeout": 1})
         assert res.status_code == 503
         assert res.get_json()["error"] == "no_reader"
+
+def test_scan_once_default_timeout(client):
+    """
+    Agent accepts missing timeout body and defaults to 30s.
+    """
+
+    with patch("agent.agent.readers", return_value = [MagicMock()]):
+        from agent.agent import _state
+        _state.set("AABBCCDD")
+        res = client.post("/scan/once")
+        assert res.status_code == 200
+        assert res.get_json()["uid"] == "AABBCCDD"
