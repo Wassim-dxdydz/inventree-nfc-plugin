@@ -51,6 +51,7 @@ export default defineConfig({
         './src/Panel.tsx',
         './src/Dashboard.tsx',
         './src/Settings.tsx',
+        './src/Spotlight.tsx',
       ],
       output: [
         // Generate two sets of output files:

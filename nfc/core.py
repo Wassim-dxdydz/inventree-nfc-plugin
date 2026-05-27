@@ -96,7 +96,7 @@ class NFC(
         panels = []
 
         # Only display this panel for the 'part' target
-        if context.get("target_model") in ["part", "stocklocation"]:
+        if context.get("target_model") in ["part", "stocklocation", "partcategory"]:
             panels.append({
                 "key": "nfc-panel",
                 "title": "NFC Scanner",
