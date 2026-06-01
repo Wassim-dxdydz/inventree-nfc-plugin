@@ -6,7 +6,9 @@ import { t } from '@lingui/core/macro';
 import {
   Alert,
   Badge,
+  Box,
   Button,
+  Group,
   Loader,
   SimpleGrid,
   Stack,
@@ -21,6 +23,13 @@ interface NfcConfig {
   agent_base_url: string;
   scan_timeout_seconds: number;
   auto_redirect: boolean;
+}
+
+interface AgentHealth {
+  status: 'ok' | 'unreachable';
+  agent_reachable: boolean;
+  reader_connected: boolean;
+  readers?: string[];
 }
 
 interface ScanResult {
@@ -38,34 +47,105 @@ interface TagLookupResult {
   part_url?: string;
 }
 
-async function pollForTag(
-  agentBaseUrl: string,
-  timeoutSeconds: number,
-  signal: AbortSignal
-): Promise<string | null> {
-  const deadline = Date.now() + timeoutSeconds * 1000;
-  while (Date.now() < deadline) {
-    if (signal.aborted) return null;
+class AgentScanError extends Error {
+  code: string;
 
-    const res = await fetch(`${agentBaseUrl}/scan/once`, {
-      method: 'POST', // agent exposes POST /scan/once
-      signal
-    }).catch(() => null);
-
-    if (!res) return null;
-
-    const data: ScanResult = await res.json();
-
-    // Success — agent returned a UID
-    if (data.uid) return data.uid;
-
-    // Hard stop — no reader plugged in
-    if (data.error === 'no_reader') return null;
-
-    // Agent timed out — loop again if we still have budget
-    await new Promise((r) => setTimeout(r, 200));
+  constructor(code: string, message?: string) {
+    super(message ?? code);
+    this.code = code;
   }
-  return null;
+}
+
+async function getAgentHealth(agentBaseUrl: string): Promise<AgentHealth> {
+  try {
+    const res = await fetch(`${agentBaseUrl}/health`);
+
+    if (!res.ok) {
+      return {
+        status: 'unreachable',
+        agent_reachable: false,
+        reader_connected: false,
+        readers: []
+      };
+    }
+
+    const data = await res.json();
+
+    return {
+      status: 'ok',
+      agent_reachable: true,
+      reader_connected: !!data.reader_connected,
+      readers: Array.isArray(data.readers) ? data.readers : []
+    };
+  } catch {
+    return {
+      status: 'unreachable',
+      agent_reachable: false,
+      reader_connected: false,
+      readers: []
+    };
+  }
+}
+
+async function scanOnce(
+  agentBaseUrl: string,
+  timeoutSeconds: number
+): Promise<string> {
+  const controller = new AbortController();
+
+  const timer = window.setTimeout(
+    () => {
+      controller.abort();
+    },
+    (timeoutSeconds + 2) * 1000
+  );
+
+  try {
+    const res = await fetch(`${agentBaseUrl}/scan/once`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ timeout: timeoutSeconds }),
+      signal: controller.signal
+    });
+
+    const data: ScanResult = await res.json().catch(() => ({}));
+
+    if (res.ok && data.uid) {
+      return data.uid;
+    }
+
+    throw new AgentScanError(data.error ?? `http_${res.status}`);
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new AgentScanError('client_timeout');
+    }
+
+    if (err instanceof AgentScanError) {
+      throw err;
+    }
+
+    throw new AgentScanError('network_error');
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function getScanErrorMessage(code: string): string {
+  switch (code) {
+    case 'timeout':
+    case 'client_timeout':
+      return 'No tag detected before timeout.';
+    case 'no_reader':
+      return 'No NFC reader detected on this workstation.';
+    case 'scan_in_progress':
+      return 'A scan is already in progress.';
+    case 'network_error':
+      return 'Cannot reach the local NFC agent.';
+    default:
+      return 'Scan failed.';
+  }
 }
 
 /**
@@ -84,60 +164,98 @@ function NFCDashboardItem({ context }: { context: InvenTreePluginContext }) {
 
   const config = configQuery.data;
 
+  const healthQuery = useQuery<AgentHealth>(
+    {
+      queryKey: ['nfc-agent-health', config?.agent_base_url],
+      enabled: !!config?.agent_base_url,
+      queryFn: () => getAgentHealth(config!.agent_base_url),
+      refetchInterval: 3000,
+      retry: false
+    },
+    context.queryClient
+  );
+
+  const health = healthQuery.data;
+  const agentReachable = !!health?.agent_reachable;
+  const readerReady = !!health?.agent_reachable && !!health?.reader_connected;
+  const canScan = !!config && readerReady;
+
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<TagLookupResult | null>(null);
 
   const startScan = useCallback(async () => {
-    if (!config) return;
+    if (!config || scanning) return;
+
     setScanning(true);
     setResult(null);
 
-    const uid = await pollForTag(
-      config.agent_base_url,
-      config.scan_timeout_seconds,
-      new AbortController().signal
-    );
-
-    if (!uid) {
-      notifications.show({
-        title: t`No tag detected`,
-        message: t`Scan timed out or no reader found.`,
-        color: 'yellow'
-      });
-      setScanning(false);
-      return;
-    }
-
     try {
+      const uid = await scanOnce(
+        config.agent_base_url,
+        config.scan_timeout_seconds
+      );
+
       const res = await context.api.get(`/plugin/nfc/tag/${uid}/`);
       const data: TagLookupResult = res.data;
       setResult(data);
+
       if (data.found && config.auto_redirect && data.part_url) {
         context.navigate(data.part_url);
       }
-    } catch {
+    } catch (err: any) {
       notifications.show({
-        title: t`Lookup failed`,
-        message: t`Could not check this tag.`,
-        color: 'red'
+        title: t`Scan failed`,
+        message: getScanErrorMessage(err?.code ?? 'unknown'),
+        color:
+          err?.code === 'timeout' || err?.code === 'client_timeout'
+            ? 'yellow'
+            : 'red'
       });
+    } finally {
+      setScanning(false);
     }
-
-    setScanning(false);
-  }, [config, context.api, context.navigate]);
+  }, [config, scanning, context.api, context.navigate]);
 
   return (
     <SimpleGrid cols={1} spacing='md'>
+      <Group gap='xs'>
+        <Box
+          w={10}
+          h={10}
+          style={{
+            borderRadius: '999px',
+            backgroundColor: healthQuery.isLoading
+              ? 'var(--mantine-color-yellow-6)'
+              : readerReady
+                ? 'var(--mantine-color-green-6)'
+                : 'var(--mantine-color-red-6)',
+            flexShrink: 0
+          }}
+        />
+        <Text
+          size='sm'
+          c={healthQuery.isLoading ? 'yellow' : readerReady ? 'green' : 'red'}
+        >
+          {healthQuery.isLoading
+            ? t`Checking reader...`
+            : !agentReachable
+              ? t`Agent not reachable`
+              : readerReady
+                ? t`Reader connected`
+                : t`Reader not available`}
+        </Text>
+      </Group>
+
       <Button
         color='teal'
         leftSection={
           scanning ? <Loader size={14} color='white' /> : <IconWifi size={16} />
         }
         loading={scanning}
-        disabled={!config}
+        disabled={!canScan}
         onClick={startScan}
       >
-        {scanning ? t`Waiting for tag…` : t`Scan NFC Tag`}
+        {scanning ? t`Waiting for tag...` : t`Scan NFC Tag`}
       </Button>
 
       {result &&
@@ -145,9 +263,17 @@ function NFCDashboardItem({ context }: { context: InvenTreePluginContext }) {
           <Alert color='teal' title={t`Part found`}>
             <Stack gap={4}>
               <Text fw={600}>{result.part_name}</Text>
+
+              {result.part_description && (
+                <Text size='sm' c='dimmed'>
+                  {result.part_description}
+                </Text>
+              )}
+
               <Text size='sm'>
                 {t`Stock:`} {result.total_stock ?? '—'}
               </Text>
+
               <Button
                 size='xs'
                 variant='light'

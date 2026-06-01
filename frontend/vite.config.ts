@@ -1,21 +1,20 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { viteExternalsPlugin } from 'vite-plugin-externals'
-import { lingui } from "@lingui/vite-plugin";
-
+import { lingui } from '@lingui/vite-plugin';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+import { viteExternalsPlugin } from 'vite-plugin-externals';
 
 /**
  * The following libraries are externalized to avoid bundling them with the plugin.
  * These libraries are expected to be provided by the InvenTree core application.
  */
-export const externalLibs : Record<string, string> = {
+export const externalLibs: Record<string, string> = {
   react: 'React',
   'react-dom': 'ReactDOM',
-  'ReactDom': 'ReactDOM',
+  ReactDom: 'ReactDOM',
   '@lingui/core': 'LinguiCore',
   '@lingui/react': 'LinguiReact',
   '@mantine/core': 'MantineCore',
-  "@mantine/notifications": 'MantineNotifications',
+  '@mantine/notifications': 'MantineNotifications'
 };
 
 // Just the keys of the externalLibs object
@@ -31,13 +30,13 @@ export default defineConfig({
     react({
       jsxRuntime: 'classic',
       babel: {
-        plugins: ['macros'], // Required for @lingui macros
-      },
+        plugins: ['macros'] // Required for @lingui macros
+      }
     }),
-    viteExternalsPlugin(externalLibs),
+    viteExternalsPlugin(externalLibs)
   ],
   esbuild: {
-    jsx: 'preserve',
+    jsx: 'preserve'
   },
   build: {
     // minify: false,
@@ -46,12 +45,12 @@ export default defineConfig({
     manifest: true,
     sourcemap: true,
     rollupOptions: {
-      preserveEntrySignatures: "exports-only",
+      preserveEntrySignatures: 'exports-only',
       input: [
         './src/Panel.tsx',
         './src/Dashboard.tsx',
         './src/Settings.tsx',
-        './src/Spotlight.tsx',
+        './src/Spotlight.tsx'
       ],
       output: [
         // Generate two sets of output files:
@@ -60,20 +59,20 @@ export default defineConfig({
           dir: '../nfc/static',
           entryFileNames: '[name].js',
           assetFileNames: 'assets/[name].[ext]',
-          globals: externalLibs,
+          globals: externalLibs
         },
         // And one with hashes for cache busting
         {
           dir: '../nfc/static',
           entryFileNames: '[name]-[hash].js',
           assetFileNames: 'assets/[name].[ext]',
-          globals: externalLibs,
+          globals: externalLibs
         }
       ],
-      external: externalKeys,
+      external: externalKeys
     }
   },
   optimizeDeps: {
-    exclude: externalKeys,
+    exclude: externalKeys
   }
-})
+});

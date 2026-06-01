@@ -1,4 +1,3 @@
-// Import for type checking
 import {
   checkPluginVersion,
   type InvenTreePluginContext,
@@ -9,6 +8,7 @@ import {
   Accordion,
   Alert,
   Badge,
+  Box,
   Button,
   Group,
   Loader,
@@ -19,7 +19,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconLink, IconTrash, IconWifi } from '@tabler/icons-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { LocalizedComponent } from './locale';
 
 interface NfcConfig {
@@ -53,7 +53,115 @@ interface TagLookupResult {
   part_url?: string;
 }
 
-async function pollForTag(
+interface AgentHealth {
+  status: 'ok' | 'unreachable';
+  agent_reachable: boolean;
+  reader_connected: boolean;
+  readers?: string[];
+}
+
+class AgentScanError extends Error {
+  code: string;
+
+  constructor(code: string, message?: string) {
+    super(message ?? code);
+    this.code = code;
+  }
+}
+
+async function getAgentHealth(agentBaseUrl: string): Promise<AgentHealth> {
+  try {
+    const res = await fetch(`${agentBaseUrl}/health`);
+
+    if (!res.ok) {
+      return {
+        status: 'unreachable',
+        agent_reachable: false,
+        reader_connected: false,
+        readers: []
+      };
+    }
+
+    const data = await res.json();
+
+    return {
+      status: 'ok',
+      agent_reachable: true,
+      reader_connected: !!data.reader_connected,
+      readers: Array.isArray(data.readers) ? data.readers : []
+    };
+  } catch {
+    return {
+      status: 'unreachable',
+      agent_reachable: false,
+      reader_connected: false,
+      readers: []
+    };
+  }
+}
+
+async function scanOnce(
+  agentBaseUrl: string,
+  timeoutSeconds: number
+): Promise<string> {
+  const controller = new AbortController();
+
+  const timer = window.setTimeout(
+    () => {
+      controller.abort();
+    },
+    (timeoutSeconds + 2) * 1000
+  );
+
+  try {
+    const res = await fetch(`${agentBaseUrl}/scan/once`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ timeout: timeoutSeconds }),
+      signal: controller.signal
+    });
+
+    const data: ScanResult = await res.json().catch(() => ({}));
+
+    if (res.ok && data.uid) {
+      return data.uid;
+    }
+
+    throw new AgentScanError(data.error ?? `http_${res.status}`);
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new AgentScanError('client_timeout');
+    }
+
+    if (err instanceof AgentScanError) {
+      throw err;
+    }
+
+    throw new AgentScanError('network_error');
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function getScanErrorMessage(code: string): string {
+  switch (code) {
+    case 'timeout':
+    case 'client_timeout':
+      return 'No tag detected before timeout.';
+    case 'no_reader':
+      return 'No NFC reader detected on this workstation.';
+    case 'scan_in_progress':
+      return 'A scan is already in progress.';
+    case 'network_error':
+      return 'Cannot reach the local NFC agent.';
+    default:
+      return 'Scan failed.';
+  }
+}
+
+/**async function pollForTag(
   agentBaseUrl: string,
   timeoutSeconds: number,
   signal: AbortSignal
@@ -82,7 +190,7 @@ async function pollForTag(
   }
 
   return null;
-}
+}**/
 
 /**
  * Render a custom panel with the provided context.
@@ -90,15 +198,6 @@ async function pollForTag(
  * https://docs.inventree.org/en/latest/plugins/mixins/ui/#plugin-context
  */
 function NFCPanel({ context }: { context: InvenTreePluginContext }) {
-  console.log('i18n:', context.i18n);
-  console.log('locale:', context.locale);
-  // React hooks can be used within plugin components
-  useEffect(() => {
-    console.log('NFCPanel - Model:', context.model);
-    console.log(' - ID:', context.id);
-  }, [context.model, context.id]);
-
-  // Memoize the part ID as passed via the context object
   const partId = useMemo(
     () => (context.model === ModelType.part ? (context.id ?? null) : null),
     [context.model, context.id]
@@ -118,6 +217,22 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
   );
 
   const config = configQuery.data;
+
+  const healthQuery = useQuery<AgentHealth>(
+    {
+      queryKey: ['nfc-agent-health', config?.agent_base_url],
+      enabled: !!config?.agent_base_url,
+      queryFn: () => getAgentHealth(config!.agent_base_url),
+      refetchInterval: 3000,
+      retry: false
+    },
+    context.queryClient
+  );
+
+  const health = healthQuery.data;
+  const agentReachable = !!health?.agent_reachable;
+  const readerReady = !!health?.agent_reachable && !!health?.reader_connected;
+  const canScan = !!config && readerReady;
 
   // Tag linked to this part
   const tagByPartQuery = useQuery<TagByPartResponse>(
@@ -162,8 +277,7 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
     context.queryClient
   );
 
-  // Link Scan
-  const [linkScanning, setLinkScanning] = useState(false);
+  /**const [linkScanning, setLinkScanning] = useState(false);
   const startLinkScan = useCallback(async () => {
     if (!config || !partId) return;
     setLinkScanning(true);
@@ -204,10 +318,52 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
     }
 
     setLinkScanning(false);
-  }, [config, partId, context.api, context.queryClient]);
+  }, [config, partId, context.api, context.queryClient]);**/
 
-  // Find scan
-  const [findScanning, setFindScanning] = useState(false);
+  // Link Scan
+  const [linkScanning, setLinkScanning] = useState(false);
+
+  const startLinkScan = useCallback(async () => {
+    if (!config || !partId || linkScanning) return;
+
+    setLinkScanning(true);
+
+    try {
+      const uid = await scanOnce(
+        config.agent_base_url,
+        config.scan_timeout_seconds
+      );
+
+      await context.api.post('/plugin/nfc/link/', { uid, part_id: partId });
+
+      context.queryClient.invalidateQueries({
+        queryKey: ['nfc-tag-by-part', partId]
+      });
+
+      notifications.show({
+        title: t`Tag linked`,
+        message: `${uid} → part #${partId}`,
+        color: 'green'
+      });
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.error ??
+        getScanErrorMessage(err?.code ?? 'unknown');
+
+      notifications.show({
+        title: t`Link failed`,
+        message,
+        color:
+          err?.code === 'timeout' || err?.code === 'client_timeout'
+            ? 'yellow'
+            : 'red'
+      });
+    } finally {
+      setLinkScanning(false);
+    }
+  }, [config, partId, linkScanning, context.api, context.queryClient]);
+
+  /**const [findScanning, setFindScanning] = useState(false);
   const [findResult, setFindResult] = useState<TagLookupResult | null>(null);
 
   const startFindScan = useCallback(async () => {
@@ -248,14 +404,51 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
     }
 
     setFindScanning(false);
-  }, [config, context.api, context.navigate]);
+  }, [config, context.api, context.navigate]);**/
+
+  // Find scan
+  const [findScanning, setFindScanning] = useState(false);
+  const [findResult, setFindResult] = useState<TagLookupResult | null>(null);
+
+  const startFindScan = useCallback(async () => {
+    if (!config || findScanning) return;
+
+    setFindScanning(true);
+    setFindResult(null);
+
+    try {
+      const uid = await scanOnce(
+        config.agent_base_url,
+        config.scan_timeout_seconds
+      );
+
+      const res = await context.api.get(`/plugin/nfc/tag/${uid}/`);
+      const data: TagLookupResult = res.data;
+      setFindResult(data);
+
+      if (data.found && config.auto_redirect && data.part_url) {
+        context.navigate(data.part_url);
+      }
+    } catch (err: any) {
+      notifications.show({
+        title: t`Scan failed`,
+        message: getScanErrorMessage(err?.code ?? 'unknown'),
+        color:
+          err?.code === 'timeout' || err?.code === 'client_timeout'
+            ? 'yellow'
+            : 'red'
+      });
+    } finally {
+      setFindScanning(false);
+    }
+  }, [config, findScanning, context.api, context.navigate]);
 
   // Render
   if (configQuery.isLoading) {
     return (
       <Group justify='center' p='md'>
         <Loader size='sm' />
-        <Text c='dimmed'>{t`Loading NFC config…`}</Text>
+        <Text c='dimmed'>{t`Loading NFC config...`}</Text>
       </Group>
     );
   }
@@ -269,153 +462,194 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
   }
 
   return (
-    <Accordion defaultValue='scan'>
-      {/* Link / Unlink — staff + part page only */}
-      {partId && isStaff && (
-        <Accordion.Item value='link'>
+    <>
+      <Group gap='xs' mb='sm'>
+        <Box
+          w={10}
+          h={10}
+          style={{
+            borderRadius: '999px',
+            backgroundColor: healthQuery.isLoading
+              ? 'var(--mantine-color-yellow-6)'
+              : readerReady
+                ? 'var(--mantine-color-green-6)'
+                : 'var(--mantine-color-red-6)',
+            flexShrink: 0
+          }}
+        />
+        <Text
+          size='sm'
+          c={healthQuery.isLoading ? 'yellow' : readerReady ? 'green' : 'red'}
+        >
+          {healthQuery.isLoading
+            ? t`Checking reader...`
+            : !agentReachable
+              ? t`Agent not reachable`
+              : readerReady
+                ? t`Reader connected`
+                : t`Reader not available`}
+        </Text>
+      </Group>
+
+      <Accordion defaultValue='scan'>
+        {/* Link / Unlink — staff + part page only */}
+        {partId && isStaff && (
+          <Accordion.Item value='link'>
+            <Accordion.Control>
+              <Title c={context.theme.primaryColor} order={4}>
+                {t`NFC Tag`}
+              </Title>
+            </Accordion.Control>
+            <Accordion.Panel>
+              <Stack gap='sm'>
+                {tagByPartQuery.isLoading ? (
+                  <Group>
+                    <Loader size='xs' />
+                    <Text size='sm' c='dimmed'>
+                      {t`Checking tag...`}
+                    </Text>
+                  </Group>
+                ) : linkedTag ? (
+                  <>
+                    <Alert
+                      color='teal'
+                      title={t`Tag linked`}
+                      icon={<IconWifi size={16} />}
+                    >
+                      <Stack gap={4}>
+                        <Group gap='xs'>
+                          <Text size='sm' fw={600}>
+                            {t`UID:`}
+                          </Text>
+                          <Badge variant='outline' color='teal'>
+                            {linkedTag.uid}
+                          </Badge>
+                        </Group>
+                        {linkedTag.linked_by && (
+                          <Text size='xs' c='dimmed'>
+                            {t`Linked by`} {linkedTag.linked_by}
+                            {linkedTag.linked_at &&
+                              ` — ${new Date(linkedTag.linked_at).toLocaleDateString()}`}
+                          </Text>
+                        )}
+                      </Stack>
+                    </Alert>
+
+                    <Button
+                      color='red'
+                      variant='light'
+                      leftSection={<IconTrash size={16} />}
+                      loading={unlinkMutation.isPending}
+                      onClick={() => unlinkMutation.mutate(linkedTag.uid!)}
+                    >
+                      {t`Unlink tag`}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Text size='sm' c='dimmed'>
+                      {t`No NFC tag linked to this part.`}
+                    </Text>
+
+                    <Button
+                      color={context.theme.primaryColor}
+                      disabled={!canScan}
+                      leftSection={
+                        linkScanning ? (
+                          <Loader size={14} color='white' />
+                        ) : (
+                          <IconLink size={16} />
+                        )
+                      }
+                      loading={linkScanning}
+                      onClick={startLinkScan}
+                    >
+                      {linkScanning ? t`Waiting for tag...` : t`Link NFC Tag`}
+                    </Button>
+                  </>
+                )}
+              </Stack>
+            </Accordion.Panel>
+          </Accordion.Item>
+        )}
+        {/* Scan to Find — everyone */}
+        <Accordion.Item value='scan'>
           <Accordion.Control>
             <Title c={context.theme.primaryColor} order={4}>
-              {t`NFC Tag`}
+              {t`Scan to Find`}
             </Title>
           </Accordion.Control>
           <Accordion.Panel>
             <Stack gap='sm'>
-              {tagByPartQuery.isLoading ? (
-                <Group>
-                  <Loader size='xs' />
-                  <Text size='sm' c='dimmed'>{t`Checking tag…`}</Text>
-                </Group>
-              ) : linkedTag ? (
-                <>
-                  <Alert
-                    color='teal'
-                    title={t`Tag linked`}
-                    icon={<IconWifi size={16} />}
-                  >
+              <Button
+                color={context.theme.primaryColor}
+                disabled={!canScan}
+                leftSection={
+                  findScanning ? (
+                    <Loader size={14} color='white' />
+                  ) : (
+                    <IconWifi size={16} />
+                  )
+                }
+                loading={findScanning}
+                onClick={startFindScan}
+              >
+                {findScanning ? t`Waiting for tag...` : t`Scan Tag`}
+              </Button>
+
+              {findResult &&
+                (findResult.found ? (
+                  <Alert color='teal' title={t`Part found`}>
                     <Stack gap={4}>
-                      <Group gap='xs'>
-                        <Text size='sm' fw={600}>{t`UID:`}</Text>
-                        <Badge variant='outline' color='teal'>
-                          {linkedTag.uid}
-                        </Badge>
-                      </Group>
-                      {linkedTag.linked_by && (
-                        <Text size='xs' c='dimmed'>
-                          {t`Linked by`} {linkedTag.linked_by}
-                          {linkedTag.linked_at &&
-                            ` — ${new Date(linkedTag.linked_at).toLocaleDateString()}`}
+                      <Text fw={600}>{findResult.part_name}</Text>
+
+                      {findResult.part_description && (
+                        <Text size='sm' c='dimmed'>
+                          {findResult.part_description}
                         </Text>
                       )}
-                    </Stack>
-                  </Alert>
-                  <Button
-                    color='red'
-                    variant='light'
-                    leftSection={<IconTrash size={16} />}
-                    loading={unlinkMutation.isPending}
-                    onClick={() => unlinkMutation.mutate(linkedTag.uid!)}
-                  >
-                    {t`Unlink tag`}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Text size='sm' c='dimmed'>
-                    {t`No NFC tag linked to this part.`}
-                  </Text>
-                  <Button
-                    color={context.theme.primaryColor}
-                    leftSection={
-                      linkScanning ? (
-                        <Loader size={14} color='white' />
-                      ) : (
-                        <IconLink size={16} />
-                      )
-                    }
-                    loading={linkScanning}
-                    onClick={startLinkScan}
-                  >
-                    {linkScanning ? t`Waiting for tag…` : t`Link NFC Tag`}
-                  </Button>
-                </>
-              )}
-            </Stack>
-          </Accordion.Panel>
-        </Accordion.Item>
-      )}
 
-      {/* Scan to Find — everyone */}
-      <Accordion.Item value='scan'>
-        <Accordion.Control>
-          <Title c={context.theme.primaryColor} order={4}>
-            {t`Scan to Find`}
-          </Title>
-        </Accordion.Control>
-        <Accordion.Panel>
-          <Stack gap='sm'>
-            <Button
-              color={context.theme.primaryColor}
-              leftSection={
-                findScanning ? (
-                  <Loader size={14} color='white' />
-                ) : (
-                  <IconWifi size={16} />
-                )
-              }
-              loading={findScanning}
-              onClick={startFindScan}
-            >
-              {findScanning ? t`Waiting for tag…` : t`Scan Tag`}
-            </Button>
-
-            {findResult &&
-              (findResult.found ? (
-                <Alert color='teal' title={t`Part found`}>
-                  <Stack gap={4}>
-                    <Text fw={600}>{findResult.part_name}</Text>
-                    {findResult.part_description && (
-                      <Text size='sm' c='dimmed'>
-                        {findResult.part_description}
+                      <Text size='sm'>
+                        {t`Stock:`} {findResult.total_stock ?? '—'}
                       </Text>
-                    )}
-                    <Text size='sm'>
-                      {t`Stock:`} {findResult.total_stock ?? '—'}
-                    </Text>
-                    <Button
-                      size='xs'
-                      variant='light'
-                      color='teal'
-                      mt={4}
-                      onClick={() => context.navigate(findResult.part_url!)}
-                    >
-                      {t`Go to part`}
-                    </Button>
-                  </Stack>
-                </Alert>
-              ) : (
-                <Alert color='yellow' title={t`Unknown tag`}>
-                  <Stack gap='xs'>
-                    <Text size='sm'>
-                      {t`No part linked to`}{' '}
-                      <Badge variant='outline'>{findResult.uid}</Badge>
-                    </Text>
-                    {config.allow_link_from_scan && (
+
                       <Button
                         size='xs'
                         variant='light'
-                        color='yellow'
-                        onClick={() => context.navigate('/part/')}
+                        color='teal'
+                        mt={4}
+                        onClick={() => context.navigate(findResult.part_url!)}
                       >
-                        {t`Browse parts to link`}
+                        {t`Go to part`}
                       </Button>
-                    )}
-                  </Stack>
-                </Alert>
-              ))}
-          </Stack>
-        </Accordion.Panel>
-      </Accordion.Item>
-    </Accordion>
+                    </Stack>
+                  </Alert>
+                ) : (
+                  <Alert color='yellow' title={t`Unknown tag`}>
+                    <Stack gap='xs'>
+                      <Text size='sm'>
+                        {t`No part linked to`}{' '}
+                        <Badge variant='outline'>{findResult.uid}</Badge>
+                      </Text>
+
+                      {config.allow_link_from_scan && (
+                        <Button
+                          size='xs'
+                          variant='light'
+                          color='yellow'
+                          onClick={() => context.navigate('/part/')}
+                        >
+                          {t`Browse parts to link`}
+                        </Button>
+                      )}
+                    </Stack>
+                  </Alert>
+                ))}
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+      </Accordion>
+    </>
   );
 }
 

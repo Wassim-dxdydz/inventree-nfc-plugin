@@ -11,7 +11,7 @@ import threading
 from dataclasses import dataclass, field
 from typing import Optional
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify,request
 from flask_cors import CORS
 from smartcard.CardMonitoring import CardMonitor, CardObserver
 from smartcard.Exceptions import CardConnectionException, NoCardException
@@ -28,8 +28,13 @@ log = logging.getLogger("nfc-agent")
 GET_UID = [0xFF, 0xCA, 0x00, 0x00, 0x00]
 SW_OK   = (0x90, 0x00)  # status word = success
 
+DEFAUTL_SCAN_TIMEOUT = 30.0
+MIN_SCAN_TIMEOUT     = 1.0
+MAX_SCAN_TIMEOUT     = 120.0
 
-# ── Thread-safe UID buffer ────────────────────────────────────────────────────
+_scan_lock =  threading.Lock()
+
+############################### Thread-safe UID buffer ############################### 
 # When agent.py receives POST /scan/once, the HTTP request thread calls
 # _state.take() which BLOCKS. Meanwhile, the PC/SC background thread
 # (NFCObserver) detects the tag, reads the UID, and calls _state.set(uid)
@@ -41,12 +46,17 @@ class TagState:
     _uid:   Optional[str]   = field(default=None,                    repr=False)
     _event: threading.Event = field(default_factory=threading.Event, repr=False)
 
+    def clear(self) -> None:
+        with self._lock:
+            self._uid = None
+            self._event.clear()
+
     def set(self, uid: str) -> None:
         with self._lock:
             self._uid = uid
             self._event.set()
 
-    def take(self, timeout: float = 15.0) -> Optional[str]:
+    def take(self, timeout: float = DEFAUTL_SCAN_TIMEOUT) -> Optional[str]:
         """Block until a tag arrives or timeout expires."""
         fired = self._event.wait(timeout=timeout)
         if not fired:
@@ -61,7 +71,7 @@ class TagState:
 _state = TagState()
 
 
-# ── PC/SC card observer ───────────────────────────────────────────────────────
+############################### PC/SC card observer ###############################
 # pyscard's CardMonitor runs a background thread that calls update()
 # every time a card is inserted or removed.
 
@@ -80,13 +90,17 @@ def _read_uid(card) -> Optional[str]:
         card.connection = card.createConnection()
         card.connection.connect()
         response, sw1, sw2 = card.connection.transmit(GET_UID)
+
         if (sw1, sw2) == SW_OK and response:
             return toHexString(response).replace(" ", "").upper()
+
         log.warning("Bad SW: %02X %02X", sw1, sw2)
         return None
+
     except (CardConnectionException, NoCardException) as e:
         log.warning("UID read failed: %s", e)
         return None
+
     finally:
         try:
             card.connection.disconnect()
@@ -94,19 +108,28 @@ def _read_uid(card) -> Optional[str]:
             pass
 
 
-# ── Flask app ─────────────────────────────────────────────────────────────────
+############################### Flask App ###############################
 
 app = Flask(__name__)
 # Allow calls from InvenTree running in the browser (any localhost origin)
-CORS(app, origins=["http://localhost:*", "http://127.0.0.1:*"])
+# CORS(app, origins=["http://localhost:*", "http://127.0.0.1:*"])
+CORS(app)
 
-
-@app.get("/health")
+"""@app.get("/health")
 def health():
     return jsonify({"status": "ok", "reader_connected": bool(readers())}), 200
+"""
+@app.get("/health")
+def health():
+    current_readers =  readers()
 
+    return jsonify({
+        "status": "ok",
+        "reader_connected": bool(current_readers),
+        "readers": [str(r) for r in current_readers],
+    }), 200
 
-@app.post("/scan/once")
+"""@app.post("/scan/once")
 def scan_once():
     if not readers():
         # No USB reader plugged in
@@ -118,10 +141,42 @@ def scan_once():
         # User didn't scan anything within 15 seconds
         return jsonify({"error": "timeout"}), 408
 
-    return jsonify({"uid": uid}), 200
+    return jsonify({"uid": uid}), 200"""
+
+@app.post("/scan/once")
+def scan_once():
+    if not readers():
+        # No USB reader plugged in
+        return jsonify({"error": "no_reader"}), 503
+
+    data = request.get_json(silent=True) or {}
+    raw_timeout = data.get("timeout", DEFAUTL_SCAN_TIMEOUT)
+
+    try:
+        timeout = float(raw_timeout)
+    except (TypeError, ValueError):
+        timeout = DEFAUTL_SCAN_TIMEOUT
+
+    timeout = max(MIN_SCAN_TIMEOUT, min(MAX_SCAN_TIMEOUT, timeout))
+
+    if not _scan_lock.acquire(blocking=False):
+        return jsonify({"error": "scan_in_progress"}), 409
+
+    try:
+        _state.clear()
+        uid = _state.take(timeout=timeout)
+
+        if uid is None:
+            # User didn't scan anything within "timeout" seconds
+            return jsonify({"error": "timeout"}), 408
+
+        return jsonify({"uid": uid}), 200
+    
+    finally:
+        _scan_lock.release()
 
 
-# ── Start ─────────────────────────────────────────────────────────────────────
+############################### Main ###############################
 
 if __name__ == "__main__":
     from waitress import serve

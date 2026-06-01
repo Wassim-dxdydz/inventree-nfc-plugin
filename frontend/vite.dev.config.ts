@@ -1,10 +1,9 @@
 // Primary vite config - we extend this for dev mode
-import { defineConfig } from 'vite'
-import { viteExternalsPlugin } from 'vite-plugin-externals'
-import viteConfig, { externalLibs } from './vite.config'
-
-import react from "@vitejs/plugin-react-swc"
-import { lingui } from "@lingui/vite-plugin"
+import { lingui } from '@lingui/vite-plugin';
+import react from '@vitejs/plugin-react-swc';
+import { defineConfig } from 'vite';
+import { viteExternalsPlugin } from 'vite-plugin-externals';
+import viteConfig, { externalLibs } from './vite.config';
 
 /**
  * Vite config to run the frontend plugin in development mode.
@@ -15,19 +14,18 @@ import { lingui } from "@lingui/vite-plugin"
  * This is a very minimal config, and is not meant to be used for production builds.
  * Refer to vite.config.ts for the production build config.
  */
-export default defineConfig((cfg) => {
-
+export default defineConfig((_cfg) => {
   const config = {
     ...viteConfig,
     resolve: {},
     server: {
-      port: 5174,  // Default port for plugins
+      port: 5174, // Default port for plugins
       strictPort: true,
       cors: {
         preflightContinue: true,
-        origin: '*',  // Allow all origins for development
+        origin: '*' // Allow all origins for development
       }
-    },
+    }
   };
 
   // Override specific options for development
@@ -37,9 +35,9 @@ export default defineConfig((cfg) => {
   config.plugins = [
     lingui(),
     react({
-      plugins: [["@lingui/swc-plugin", {}]]
+      plugins: [['@lingui/swc-plugin', {}]]
     }),
-    viteExternalsPlugin(externalLibs),
+    viteExternalsPlugin(externalLibs)
   ];
 
   return config;
