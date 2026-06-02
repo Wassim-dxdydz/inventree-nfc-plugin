@@ -115,10 +115,6 @@ app = Flask(__name__)
 # CORS(app, origins=["http://localhost:*", "http://127.0.0.1:*"])
 CORS(app)
 
-"""@app.get("/health")
-def health():
-    return jsonify({"status": "ok", "reader_connected": bool(readers())}), 200
-"""
 @app.get("/health")
 def health():
     current_readers =  readers()
@@ -128,20 +124,6 @@ def health():
         "reader_connected": bool(current_readers),
         "readers": [str(r) for r in current_readers],
     }), 200
-
-"""@app.post("/scan/once")
-def scan_once():
-    if not readers():
-        # No USB reader plugged in
-        return jsonify({"error": "no_reader"}), 503
-
-    uid = _state.take(timeout=15.0)
-
-    if uid is None:
-        # User didn't scan anything within 15 seconds
-        return jsonify({"error": "timeout"}), 408
-
-    return jsonify({"uid": uid}), 200"""
 
 @app.post("/scan/once")
 def scan_once():
@@ -162,18 +144,16 @@ def scan_once():
     if not _scan_lock.acquire(blocking=False):
         return jsonify({"error": "scan_in_progress"}), 409
 
-    try:
-        _state.clear()
-        uid = _state.take(timeout=timeout)
+    _state.clear()
+    _scan_lock.release()
 
-        if uid is None:
-            # User didn't scan anything within "timeout" seconds
-            return jsonify({"error": "timeout"}), 408
+    uid = _state.take(timeout=timeout)
 
-        return jsonify({"uid": uid}), 200
-    
-    finally:
-        _scan_lock.release()
+    if uid is None:
+        # User didn't scan anything within "timeout" seconds
+        return jsonify({"error": "timeout"}), 408
+
+    return jsonify({"uid": uid}), 200
 
 
 ############################### Main ###############################
