@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from rest_framework.test import APIClient, APIRequestFactory
 from nfc.views import NFCTagView, NFCLinkView, NFCUnlinkView, NFCTagByPartView
 
+
 @pytest.fixture()
 def auth_user(db, django_user_model):
     return django_user_model.objects.create_user(username="tester", password="pass")
