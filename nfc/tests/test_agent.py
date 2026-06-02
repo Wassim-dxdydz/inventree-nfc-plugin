@@ -71,22 +71,10 @@ def test_scan_once_timeout(client):
     """
     Agent returns timeout error when no tag is scanned within the window.
     """
-
-    with patch("agent.agent.readers", return_value = [MagicMock()]):
-        import threading
-        import agent.agent as ag
-
-        def set_uid():
-            import time
-            time.sleep(0.05)
-            ag._state.set("AABBCCDD")
-
-        t = threading.Thread(target=set_uid, daemon=True)
-        t.start()
-        res = client.post("/scan/once")
-        t.join()
-        assert res.status_code == 408
-        assert res.get_json()["error"] == "timeout"
+    with patch("agent.agent.readers", return_value=[MagicMock()]):
+        res = client.post("/scan/once", json={"timeout": 0.1})
+    assert res.status_code == 408
+    assert res.get_json()["error"] == "timeout"
 
 def test_scan_once_no_reader(client):
     """
