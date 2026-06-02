@@ -44,7 +44,7 @@ def test_health_no_reader(client):
     
     assert res.status_code == 200
     data = res.get_json()
-    assert data["reader_connected"] is True
+    assert data["reader_connected"] is False
 
 def test_scan_once_returns_uid(client):
     """
@@ -52,9 +52,18 @@ def test_scan_once_returns_uid(client):
     """
 
     with patch("agent.agent.readers", return_value = [MagicMock()]):
-        from agent.agent import _state
-        _state.set("AABBCCDD")
+        import threading
+        import agent.agent as ag
+
+        def set_uid():
+            import time
+            time.sleep(0.05)
+            ag._state.set("AABBCCDD")
+
+        t = threading.Thread(target=set_uid, daemon=True)
+        t.start()
         res = client.post("/scan/once", json={"timeout": 5})
+        t.join()
         assert res.status_code == 200
         assert res.get_json()["uid"] == "AABBCCDD"
 
@@ -64,7 +73,18 @@ def test_scan_once_timeout(client):
     """
 
     with patch("agent.agent.readers", return_value = [MagicMock()]):
-        res = client.post("/scan/once", json={"timeout": 0.1})
+        import threading
+        import agent.agent as ag
+
+        def set_uid():
+            import time
+            time.sleep(0.05)
+            ag._state.set("AABBCCDD")
+
+        t = threading.Thread(target=set_uid, daemon=True)
+        t.start()
+        res = client.post("/scan/once")
+        t.join()
         assert res.status_code == 408
         assert res.get_json()["error"] == "timeout"
 
