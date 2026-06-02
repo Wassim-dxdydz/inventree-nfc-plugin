@@ -90,10 +90,19 @@ def test_scan_once_default_timeout(client):
     """
     Agent accepts missing timeout body and defaults to 30s.
     """
+    import threading
+    import agent.agent as ag
 
-    with patch("agent.agent.readers", return_value = [MagicMock()]):
-        from agent.agent import _state
-        _state.set("AABBCCDD")
+    def set_uid():
+        import time
+        time.sleep(0.05)
+        ag._state.set("AABBCCDD")
+
+    with patch("agent.agent.readers", return_value=[MagicMock()]):
+        t = threading.Thread(target=set_uid, daemon=True)
+        t.start()
         res = client.post("/scan/once")
-        assert res.status_code == 200
-        assert res.get_json()["uid"] == "AABBCCDD"
+        t.join()
+
+    assert res.status_code == 200
+    assert res.get_json()["uid"] == "AABBCCDD"
