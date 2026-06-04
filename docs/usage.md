@@ -53,3 +53,72 @@ Use the part detail panel to link a new NFC tag to a part.
 3. If no tag is linked yet, click **Link NFC Tag**.
 4. Place the tag on the reader when prompted.
 5. Wait for confirmation.
+
+### Notes
+
+- A part can only have one active NFC tag at a time.
+- A tag can only be linked to one active part at a time.
+- If the tag or part is already linked, the plugin will show a conflict error.
+
+## Unlink a tag
+
+If a part already has a tag linked, the panel shows the UID and an **Unlink tag** button.
+
+### Steps
+
+1. Open the part page.
+2. EXpand the NFC panel.
+3. Confirm the UID you want to remove.
+4. Click **Unlink tag**.
+
+Only staff users can unlink tags.
+
+## What the status means
+
+### Reader connected
+
+The agent can see a valid NFC reader and can accept scans.
+
+### Reader not available
+
+The agent is running, but no reader is detected
+
+### Agent not reachable
+
+The frontend cannot reach the local NFC agent at all.
+
+## Typical workflow
+
+A normal workflow looks like this:
+
+1. Start the NFC agent on the workstation.
+2. Open InvenTree.
+3. Confirm the reader status is green.
+4. Scan a tag to find the linked part.
+5. Open the part page.
+6. Link or unlink tags as needed.
+
+## Common cases
+
+### New tag
+
+If a scanned tag is unkown, you must link it to a part from the part detail panel.
+
+### Existing tag
+
+If a tag is already linked, the scan result shows the matching part.
+
+### Duplicate link attempt
+
+If you try to link a tag that is already used, the plugin will reject it.
+
+### Reader disconnected
+
+If the reader is unplugged during use, the status changes to red and scnas will fail until the reader is restored.
+
+## Tips
+
+- Keep the NFC reader connected before openning InvenTree.
+- Refresh the page if the agent was started after the UI loaded.
+- Recheck the plugin settings if the status never turns green.
+- Use the browser console and agent logs if you need to debug a connection problem.
