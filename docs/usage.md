@@ -1,6 +1,6 @@
 # Usage
 
-This document explains how to use the nfc plugin after installation.
+This document explains how to use the NFC plugin after installation.
 
 ## Overview
 
@@ -42,7 +42,7 @@ Use **Scan NFC Tag** to scan a tag and search for the linked part.
 
 If auto-redirect is enabled in the plugin settings, the plugin automatically opens the part page when a matching tag is found.
 
-### Link a tag to a part
+## Link a tag to a part
 
 Use the part detail panel to link a new NFC tag to a part.
 
@@ -67,8 +67,8 @@ If a part already has a tag linked, the panel shows the UID and an **Unlink tag*
 ### Steps
 
 1. Open the part page.
-2. EXpand the NFC panel.
-3. Confirm the UID you want to remove.
+2. Expand the NFC panel.
+3. Confirm the tag UID is the one you want to remove.
 4. Click **Unlink tag**.
 
 Only staff users can unlink tags.
@@ -81,7 +81,7 @@ The agent can see a valid NFC reader and can accept scans.
 
 ### Reader not available
 
-The agent is running, but no reader is detected
+The agent is running, but no reader is detected.
 
 ### Agent not reachable
 
@@ -102,7 +102,7 @@ A normal workflow looks like this:
 
 ### New tag
 
-If a scanned tag is unkown, you must link it to a part from the part detail panel.
+If a scanned tag is unknown, you must link it to a part from the part detail panel.
 
 ### Existing tag
 
@@ -114,11 +114,11 @@ If you try to link a tag that is already used, the plugin will reject it.
 
 ### Reader disconnected
 
-If the reader is unplugged during use, the status changes to red and scnas will fail until the reader is restored.
+If the reader is unplugged during use, the status changes to red and scans will fail until the reader is restored.
 
 ## Tips
 
-- Keep the NFC reader connected before openning InvenTree.
+- Keep the NFC reader connected before opening InvenTree.
 - Refresh the page if the agent was started after the UI loaded.
 - Recheck the plugin settings if the status never turns green.
 - Use the browser console and agent logs if you need to debug a connection problem.
