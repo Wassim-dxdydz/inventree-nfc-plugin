@@ -254,7 +254,7 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
   const unlinkMutation = useMutation(
     {
       mutationFn: (uid: string) =>
-        context.api.delete(`/plugin/nfc/link/${uid}`),
+        context.api.delete(`/plugin/nfc/link/${uid}/`),
       onSuccess: () => {
         // Refresh the tag status for this part
         context.queryClient.invalidateQueries({
