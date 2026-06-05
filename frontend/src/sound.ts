@@ -1,28 +1,17 @@
-import clickSound from './assets/sounds/click.mp3'
-import successSound from './assets/sounds/success.mp3'
-import errorSound from './assets/sounds/error.mp3'
-import timeoutSound from './assets/sounds/timeout.mp3'
+import './assets/click.mp3?url';
+import './assets/success.mp3?url';
+import './assets/error.mp3?url';
+import './assets/timeout.mp3?url';
 
-export type NfcSoundName =
-    | "click"
-    | "success"
-    | "error"
-    | "timeout";
+export type NfcSoundName = 'click' | 'success' | 'error' | 'timeout';
 
-const SOUND_MAP: Record<NfcSoundName, string> = {
-    click: clickSound,
-    success: successSound,
-    error: errorSound,
-    timeout: timeoutSound,
-}
-
-export function playSound(enabled: boolean, sound: NfcSoundName){
-    if (!enabled) return;
-    try {
-        const audio =  new Audio(SOUND_MAP[sound]);
-        audio.volume = 0.5;
-        void audio.play().catch(() => {});
-    } catch {
-        
-    }
+export function playSound(enabled: boolean, sound: NfcSoundName) {
+  if (!enabled) return;
+  try {
+    const audio = new Audio(`/static/plugins/nfc/assets/${sound}.mp3`);
+    audio.volume = 0.5;
+    void audio.play().catch(() => {});
+  } catch {
+    // silently ignore
+  }
 }

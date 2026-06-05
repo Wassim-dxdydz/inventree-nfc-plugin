@@ -41,63 +41,63 @@ msgstr ""
 #~ msgid "Waiting for tag…"
 #~ msgstr "Waiting for tag…"
 
-#: src/Dashboard.tsx:207
-#: src/Panel.tsx:434
+#: src/Dashboard.tsx:218
+#: src/Panel.tsx:436
 msgid "Scan failed"
 msgstr "Scan failed"
 
-#: src/Dashboard.tsx:240
-#: src/Panel.tsx:485
+#: src/Dashboard.tsx:251
+#: src/Panel.tsx:487
 msgid "Checking reader..."
 msgstr "Checking reader..."
 
-#: src/Dashboard.tsx:242
-#: src/Panel.tsx:487
+#: src/Dashboard.tsx:253
+#: src/Panel.tsx:489
 msgid "Agent not reachable"
 msgstr "Agent not reachable"
 
-#: src/Dashboard.tsx:244
-#: src/Panel.tsx:489
+#: src/Dashboard.tsx:255
+#: src/Panel.tsx:491
 msgid "Reader connected"
 msgstr "Reader connected"
 
-#: src/Dashboard.tsx:245
-#: src/Panel.tsx:490
+#: src/Dashboard.tsx:256
+#: src/Panel.tsx:492
 msgid "Reader not available"
 msgstr "Reader not available"
 
-#: src/Dashboard.tsx:258
-#: src/Panel.tsx:567
-#: src/Panel.tsx:597
+#: src/Dashboard.tsx:269
+#: src/Panel.tsx:569
+#: src/Panel.tsx:599
 msgid "Waiting for tag..."
 msgstr "Waiting for tag..."
 
-#: src/Dashboard.tsx:258
+#: src/Dashboard.tsx:269
 msgid "Scan NFC Tag"
 msgstr "Scan NFC Tag"
 
-#: src/Dashboard.tsx:263
-#: src/Panel.tsx:602
+#: src/Dashboard.tsx:299
+#: src/Panel.tsx:604
 msgid "Part found"
 msgstr "Part found"
 
-#: src/Dashboard.tsx:274
-#: src/Panel.tsx:613
+#: src/Dashboard.tsx:310
+#: src/Panel.tsx:615
 msgid "Stock:"
 msgstr "Stock:"
 
-#: src/Dashboard.tsx:283
-#: src/Panel.tsx:623
+#: src/Dashboard.tsx:319
+#: src/Panel.tsx:625
 msgid "Go to part"
 msgstr "Go to part"
 
-#: src/Dashboard.tsx:288
-#: src/Panel.tsx:628
+#: src/Dashboard.tsx:324
+#: src/Panel.tsx:630
 msgid "Unknown tag"
 msgstr "Unknown tag"
 
-#: src/Dashboard.tsx:290
-#: src/Panel.tsx:631
+#: src/Dashboard.tsx:326
+#: src/Panel.tsx:633
 msgid "No part linked to"
 msgstr "No part linked to"
 
@@ -125,19 +125,19 @@ msgstr "No part linked to"
 #~ msgid "Could not check this tag. Try again."
 #~ msgstr "Could not check this tag. Try again."
 
-#: src/Panel.tsx:264
+#: src/Panel.tsx:266
 msgid "Tag unlinked"
 msgstr "Tag unlinked"
 
-#: src/Panel.tsx:265
+#: src/Panel.tsx:267
 msgid "NFC tag has been successfully unlinked."
 msgstr "NFC tag has been successfully unlinked."
 
-#: src/Panel.tsx:271
+#: src/Panel.tsx:273
 msgid "Unlink failed"
 msgstr "Unlink failed"
 
-#: src/Panel.tsx:272
+#: src/Panel.tsx:274
 msgid "Could not remove the NFC tag. Try again."
 msgstr "Could not remove the NFC tag. Try again."
 
@@ -145,12 +145,12 @@ msgstr "Could not remove the NFC tag. Try again."
 #~ msgid "Checking tag…"
 #~ msgstr "Checking tag…"
 
-#: src/Panel.tsx:344
-#: src/Panel.tsx:516
+#: src/Panel.tsx:346
+#: src/Panel.tsx:518
 msgid "Tag linked"
 msgstr "Tag linked"
 
-#: src/Panel.tsx:354
+#: src/Panel.tsx:356
 msgid "Link failed"
 msgstr "Link failed"
 
@@ -158,54 +158,54 @@ msgstr "Link failed"
 #~ msgid "Loading NFC config…"
 #~ msgstr "Loading NFC config…"
 
-#: src/Panel.tsx:451
+#: src/Panel.tsx:453
 msgid "Loading NFC config..."
 msgstr "Loading NFC config..."
 
-#: src/Panel.tsx:458
+#: src/Panel.tsx:460
 msgid "Config error"
 msgstr "Config error"
 
-#: src/Panel.tsx:459
+#: src/Panel.tsx:461
 msgid "Could not load NFC plugin settings."
 msgstr "Could not load NFC plugin settings."
 
-#: src/Panel.tsx:500
+#: src/Panel.tsx:502
 msgid "NFC Tag"
 msgstr "NFC Tag"
 
-#: src/Panel.tsx:509
+#: src/Panel.tsx:511
 msgid "Checking tag..."
 msgstr "Checking tag..."
 
-#: src/Panel.tsx:522
+#: src/Panel.tsx:524
 msgid "UID:"
 msgstr "UID:"
 
-#: src/Panel.tsx:530
+#: src/Panel.tsx:532
 msgid "Linked by"
 msgstr "Linked by"
 
-#: src/Panel.tsx:545
+#: src/Panel.tsx:547
 msgid "Unlink tag"
 msgstr "Unlink tag"
 
-#: src/Panel.tsx:551
+#: src/Panel.tsx:553
 msgid "No NFC tag linked to this part."
 msgstr "No NFC tag linked to this part."
 
-#: src/Panel.tsx:567
+#: src/Panel.tsx:569
 msgid "Link NFC Tag"
 msgstr "Link NFC Tag"
 
-#: src/Panel.tsx:579
+#: src/Panel.tsx:581
 msgid "Scan to Find"
 msgstr "Scan to Find"
 
-#: src/Panel.tsx:597
+#: src/Panel.tsx:599
 msgid "Scan Tag"
 msgstr "Scan Tag"
 
-#: src/Panel.tsx:642
+#: src/Panel.tsx:644
 msgid "Browse parts to link"
 msgstr "Browse parts to link"

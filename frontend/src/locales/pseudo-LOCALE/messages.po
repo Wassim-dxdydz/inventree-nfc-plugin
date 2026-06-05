@@ -41,63 +41,63 @@ msgstr ""
 #~ msgid "Waiting for tag…"
 #~ msgstr ""
 
-#: src/Dashboard.tsx:207
-#: src/Panel.tsx:434
+#: src/Dashboard.tsx:218
+#: src/Panel.tsx:436
 msgid "Scan failed"
 msgstr ""
 
-#: src/Dashboard.tsx:240
-#: src/Panel.tsx:485
+#: src/Dashboard.tsx:251
+#: src/Panel.tsx:487
 msgid "Checking reader..."
 msgstr ""
 
-#: src/Dashboard.tsx:242
-#: src/Panel.tsx:487
+#: src/Dashboard.tsx:253
+#: src/Panel.tsx:489
 msgid "Agent not reachable"
 msgstr ""
 
-#: src/Dashboard.tsx:244
-#: src/Panel.tsx:489
+#: src/Dashboard.tsx:255
+#: src/Panel.tsx:491
 msgid "Reader connected"
 msgstr ""
 
-#: src/Dashboard.tsx:245
-#: src/Panel.tsx:490
+#: src/Dashboard.tsx:256
+#: src/Panel.tsx:492
 msgid "Reader not available"
 msgstr ""
 
-#: src/Dashboard.tsx:258
-#: src/Panel.tsx:567
-#: src/Panel.tsx:597
+#: src/Dashboard.tsx:269
+#: src/Panel.tsx:569
+#: src/Panel.tsx:599
 msgid "Waiting for tag..."
 msgstr ""
 
-#: src/Dashboard.tsx:258
+#: src/Dashboard.tsx:269
 msgid "Scan NFC Tag"
 msgstr ""
 
-#: src/Dashboard.tsx:263
-#: src/Panel.tsx:602
+#: src/Dashboard.tsx:299
+#: src/Panel.tsx:604
 msgid "Part found"
 msgstr ""
 
-#: src/Dashboard.tsx:274
-#: src/Panel.tsx:613
+#: src/Dashboard.tsx:310
+#: src/Panel.tsx:615
 msgid "Stock:"
 msgstr ""
 
-#: src/Dashboard.tsx:283
-#: src/Panel.tsx:623
+#: src/Dashboard.tsx:319
+#: src/Panel.tsx:625
 msgid "Go to part"
 msgstr ""
 
-#: src/Dashboard.tsx:288
-#: src/Panel.tsx:628
+#: src/Dashboard.tsx:324
+#: src/Panel.tsx:630
 msgid "Unknown tag"
 msgstr ""
 
-#: src/Dashboard.tsx:290
-#: src/Panel.tsx:631
+#: src/Dashboard.tsx:326
+#: src/Panel.tsx:633
 msgid "No part linked to"
 msgstr ""
 
@@ -121,19 +121,19 @@ msgstr ""
 #~ msgid "Could not check this tag. Try again."
 #~ msgstr ""
 
-#: src/Panel.tsx:264
+#: src/Panel.tsx:266
 msgid "Tag unlinked"
 msgstr ""
 
-#: src/Panel.tsx:265
+#: src/Panel.tsx:267
 msgid "NFC tag has been successfully unlinked."
 msgstr ""
 
-#: src/Panel.tsx:271
+#: src/Panel.tsx:273
 msgid "Unlink failed"
 msgstr ""
 
-#: src/Panel.tsx:272
+#: src/Panel.tsx:274
 msgid "Could not remove the NFC tag. Try again."
 msgstr ""
 
@@ -141,12 +141,12 @@ msgstr ""
 #~ msgid "Checking tag…"
 #~ msgstr ""
 
-#: src/Panel.tsx:344
-#: src/Panel.tsx:516
+#: src/Panel.tsx:346
+#: src/Panel.tsx:518
 msgid "Tag linked"
 msgstr ""
 
-#: src/Panel.tsx:354
+#: src/Panel.tsx:356
 msgid "Link failed"
 msgstr ""
 
@@ -154,54 +154,54 @@ msgstr ""
 #~ msgid "Loading NFC config…"
 #~ msgstr ""
 
-#: src/Panel.tsx:451
+#: src/Panel.tsx:453
 msgid "Loading NFC config..."
 msgstr ""
 
-#: src/Panel.tsx:458
+#: src/Panel.tsx:460
 msgid "Config error"
 msgstr ""
 
-#: src/Panel.tsx:459
+#: src/Panel.tsx:461
 msgid "Could not load NFC plugin settings."
 msgstr ""
 
-#: src/Panel.tsx:500
+#: src/Panel.tsx:502
 msgid "NFC Tag"
 msgstr ""
 
-#: src/Panel.tsx:509
+#: src/Panel.tsx:511
 msgid "Checking tag..."
 msgstr ""
 
-#: src/Panel.tsx:522
+#: src/Panel.tsx:524
 msgid "UID:"
 msgstr ""
 
-#: src/Panel.tsx:530
+#: src/Panel.tsx:532
 msgid "Linked by"
 msgstr ""
 
-#: src/Panel.tsx:545
+#: src/Panel.tsx:547
 msgid "Unlink tag"
 msgstr ""
 
-#: src/Panel.tsx:551
+#: src/Panel.tsx:553
 msgid "No NFC tag linked to this part."
 msgstr ""
 
-#: src/Panel.tsx:567
+#: src/Panel.tsx:569
 msgid "Link NFC Tag"
 msgstr ""
 
-#: src/Panel.tsx:579
+#: src/Panel.tsx:581
 msgid "Scan to Find"
 msgstr ""
 
-#: src/Panel.tsx:597
+#: src/Panel.tsx:599
 msgid "Scan Tag"
 msgstr ""
 
-#: src/Panel.tsx:642
+#: src/Panel.tsx:644
 msgid "Browse parts to link"
 msgstr ""

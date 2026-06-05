@@ -18,6 +18,7 @@ import { notifications } from '@mantine/notifications';
 import { IconWifi } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { playSound } from './sound';
 
 interface NfcConfig {
   agent_base_url: string;
@@ -188,6 +189,7 @@ function NFCDashboardItem({ context }: { context: InvenTreePluginContext }) {
   const startScan = useCallback(async () => {
     if (!config || scanning) return;
 
+    playSound(config.sound_enabled, 'click')
     setScanning(true);
     setResult(null);
 
@@ -201,10 +203,17 @@ function NFCDashboardItem({ context }: { context: InvenTreePluginContext }) {
       const data: TagLookupResult = res.data;
       setResult(data);
 
+      playSound(config.sound_enabled, 'success')
+
       if (data.found && config.auto_redirect && data.part_url) {
         context.navigate(data.part_url);
       }
     } catch (err: any) {
+      if (err?.code === 'timeout' || err?.code === 'client_timeout'){
+        playSound(config.sound_enabled, 'timeout')
+      } else {
+        playSound(config.sound_enabled, 'error')
+      }
       notifications.show({
         title: t`Scan failed`,
         message: getScanErrorMessage(err?.code ?? 'unknown'),
@@ -258,6 +267,31 @@ function NFCDashboardItem({ context }: { context: InvenTreePluginContext }) {
         onClick={startScan}
       >
         {scanning ? t`Waiting for tag...` : t`Scan NFC Tag`}
+      </Button>
+      
+      <Button
+        color='gray'
+        onClick={() => {
+          // Test 1: check if the path is right
+          const url = '/static/plugins/nfc/sounds/click.mp3';
+          console.log('Trying to play:', url);
+          
+          // Test 2: try to fetch it first to confirm it exists
+          fetch(url)
+            .then(r => {
+              console.log('Fetch status:', r.status, r.ok);
+              if (r.ok) {
+                const audio = new Audio(url);
+                audio.volume = 1.0;
+                audio.play()
+                  .then(() => console.log('Playing OK'))
+                  .catch(e => console.error('Play failed:', e));
+              }
+            })
+            .catch(e => console.error('Fetch failed:', e));
+        }}
+      >
+        Debug sound
       </Button>
 
       {result &&

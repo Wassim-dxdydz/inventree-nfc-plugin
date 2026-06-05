@@ -21,6 +21,7 @@ import { IconLink, IconTrash, IconWifi } from '@tabler/icons-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { LocalizedComponent } from './locale';
+import { playSound } from './sound';
 
 interface NfcConfig {
   agent_base_url: string;
@@ -331,6 +332,8 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
     setLinkScanning(true);
 
     try {
+      playSound(config.sound_enabled, 'click');
+
       const uid = await scanOnce(
         config.agent_base_url,
         config.scan_timeout_seconds
@@ -342,6 +345,8 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
         queryKey: ['nfc-tag-by-part', partId]
       });
 
+      playSound(config.sound_enabled, 'success');
+
       notifications.show({
         title: t`Tag linked`,
         message: `${uid} → part #${partId}`,
@@ -351,6 +356,12 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
       const message =
         err?.response?.data?.error ??
         getScanErrorMessage(err?.code ?? 'unknown');
+
+      if (err?.code === 'timeout' || err?.code === 'client_timeout') {
+        playSound(config.sound_enabled, 'timeout');
+      } else {
+        playSound(config.sound_enabled, 'error');
+      }
 
       notifications.show({
         title: t`Link failed`,
@@ -419,6 +430,7 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
     setFindResult(null);
 
     try {
+      playSound(config.sound_enabled, 'click');
       const uid = await scanOnce(
         config.agent_base_url,
         config.scan_timeout_seconds
@@ -428,10 +440,17 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
       const data: TagLookupResult = res.data;
       setFindResult(data);
 
+      playSound(config.sound_enabled, 'success');
       if (data.found && config.auto_redirect && data.part_url) {
         context.navigate(data.part_url);
       }
     } catch (err: any) {
+      if (err?.code === 'timeout' || err?.code === 'client_timeout') {
+        playSound(config.sound_enabled, 'timeout');
+      } else {
+        playSound(config.sound_enabled, 'error');
+      }
+
       notifications.show({
         title: t`Scan failed`,
         message: getScanErrorMessage(err?.code ?? 'unknown'),
