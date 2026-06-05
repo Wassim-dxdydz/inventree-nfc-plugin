@@ -157,7 +157,8 @@ function NFCDashboardItem({ context }: { context: InvenTreePluginContext }) {
     {
       queryKey: ['nfc-config'],
       queryFn: () => context.api.get('/plugin/nfc/config/').then((r) => r.data),
-      staleTime: 60_000
+      staleTime: 0,
+      refetchInterval: 3000,
     },
     context.queryClient
   );
