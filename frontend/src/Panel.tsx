@@ -212,7 +212,7 @@ function NFCPanel({ context }: { context: InvenTreePluginContext }) {
       queryKey: ['nfc-config'],
       queryFn: () => context.api.get('/plugin/nfc/config/').then((r) => r.data),
       staleTime: 0,
-      refetchInterval: 3000,
+      refetchOnWindowFocus: true,
     },
     context.queryClient
   );
