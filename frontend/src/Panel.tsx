@@ -27,6 +27,7 @@ interface NfcConfig {
   scan_timeout_seconds: number;
   auto_redirect: boolean;
   allow_link_from_scan: boolean;
+  sound_enabled: boolean;
 }
 
 interface TagByPartResponse {

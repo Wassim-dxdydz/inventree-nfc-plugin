@@ -18,6 +18,7 @@ class NFCConfigView(APIView):
         return Response({
             "agent_base_url": plugin.get_setting("AGENT_BASE_URL"),
             "scan_timeout_seconds": int(plugin.get_setting("SCAN_TIMEOUT_SECONDS")),
+            "sound_enabled": bool(plugin.get_setting("SOUND_ENABLED")),
             "auto_redirect": bool(plugin.get_setting("AUTO_REDIRECT")),
             "allow_link_from_scan": bool(plugin.get_setting("ALLOW_LINK_FROM_SCAN")),
         })

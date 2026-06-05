@@ -23,6 +23,7 @@ interface NfcConfig {
   agent_base_url: string;
   scan_timeout_seconds: number;
   auto_redirect: boolean;
+  sound_enabled: boolean;
 }
 
 interface AgentHealth {

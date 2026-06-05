@@ -54,6 +54,12 @@ class NFC(
             "validator": str,
             "default": "http://127.0.0.1:8765",
         },
+        "SOUND_ENABLED": {
+            "name": "Enable sound effects",
+            "description": "Play sound effects for scan and unlink actions.",
+            "validator": bool,
+            "default": True,
+        },
         "AUTO_REDIRECT": {
             "name": "Auto redirect on known tag",
             "description": "Redirect to the linked part page when a known tag is found.",
